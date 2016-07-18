@@ -6,9 +6,13 @@ import (
 	"reflect"
 	"unicode"
 	"unicode/utf8"
+
+	"golang.org/x/net/context"
 )
 
+var typeOfVars = reflect.TypeOf(Vars{})
 var typeOfError = reflect.TypeOf((*error)(nil)).Elem()
+var typeOfContext = reflect.TypeOf((*context.Context)(nil)).Elem()
 var typeOfNullInterface = reflect.TypeOf((*interface{})(nil)).Elem()
 
 func isExported(name string) bool {
@@ -35,32 +39,44 @@ func parseMethod(i interface{}) (*method, error) {
 	if mtype.Kind() != reflect.Func {
 		return nil, errors.New("is not a func")
 	}
-	if mtype.NumIn() != 3 {
-		return nil, errors.New("expect 3 in num")
+	if mtype.NumIn() != 4 {
+		return nil, errors.New("expect 4 in num")
 	}
 	if mtype.NumOut() != 1 {
 		return nil, errors.New("expect 1 out num")
 	}
-	argType := mtype.In(1)
-	if !isExportedOrBuiltinType(argType) {
-		return nil, fmt.Errorf("arg type is not exported: %s", argType.String())
+
+	arg0Type := mtype.In(0)
+	if arg0Type != typeOfContext {
+		return nil, fmt.Errorf("argument0 %q is not a %q", arg0Type.String(), typeOfContext.String())
 	}
-	replyType := mtype.In(2)
-	if replyType.Kind() != reflect.Ptr && replyType != typeOfNullInterface {
-		return nil, fmt.Errorf("reply type unsupport: %s", replyType.String())
+	arg1Type := mtype.In(1)
+	if arg1Type != typeOfVars {
+		return nil, fmt.Errorf("argument1 %q is not a %q", arg1Type.String(), typeOfVars.String())
 	}
-	if !isExportedOrBuiltinType(replyType) {
-		return nil, fmt.Errorf("reply type is not exported: %s", replyType.String())
+	arg2Type := mtype.In(2)
+	if arg2Type.Kind() != reflect.Ptr && arg2Type != typeOfNullInterface {
+		return nil, fmt.Errorf("argument2 %q is not a pointer or interface{}", arg2Type.String())
+	}
+	if !isExportedOrBuiltinType(arg2Type) {
+		return nil, fmt.Errorf("argument2 %q is not exported", arg2Type.String())
+	}
+	arg3Type := mtype.In(3)
+	if arg3Type.Kind() != reflect.Ptr && arg3Type != typeOfNullInterface {
+		return nil, fmt.Errorf("argument3 %q is not a pointer or interface{}", arg3Type.String())
+	}
+	if !isExportedOrBuiltinType(arg3Type) {
+		return nil, fmt.Errorf("argument3 %q is not exported", arg3Type.String())
 	}
 	retType := mtype.Out(0)
 	if retType != typeOfError {
-		return nil, fmt.Errorf("return argument type is not an error: %s", retType.String())
+		return nil, fmt.Errorf("return argument %q is not an error", retType.String())
 	}
-	return &method{value: value, argType: argType, replyType: replyType}, nil
+	return &method{value: value, argType: arg2Type, replyType: arg3Type}, nil
 }
 
-func (m *method) Call(ctx interface{}, argValue, replyValue reflect.Value) error {
-	in := []reflect.Value{reflect.ValueOf(ctx), argValue, replyValue}
+func (m *method) Call(ctx context.Context, vars Vars, argValue, replyValue reflect.Value) error {
+	in := []reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(vars), argValue, replyValue}
 	out := m.value.Call(in)
 	ret := out[0].Interface()
 	if err, ok := ret.(error); ok {

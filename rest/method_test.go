@@ -1,14 +1,99 @@
 package rest
 
 import (
-	"ac"
-	"encoding/json"
 	"fmt"
-	"reflect"
-	"strconv"
+	"net/url"
 	"testing"
+
+	"golang.org/x/net/context"
 )
 
+func TestParseMethod(t *testing.T) {
+	f00 := func(_ context.Context, a1 Vars, a2 *int, a3 *int) error { return nil }
+	f01 := func(_ context.Context, a1 Vars, a2 interface{}, a3 interface{}) error { return nil }
+	f02 := func(_ context.Context, a1 Vars, a2 *interface{}, a3 *interface{}) error { return nil }
+
+	f10 := func(_ interface{}, a1 string, a2 int, a3 int) error { return nil }
+	f20 := func(_ context.Context, a1 string, a2 int, a3 int) error { return nil }
+	f21 := func(_ context.Context, a1 url.Values, a2 *int, a3 int) error { return nil }
+	f22 := func(_ context.Context, a1 map[string][]string, a2 *int, a3 int) error { return nil }
+	f30 := func(_ context.Context, a1 Vars, a2 int, a3 int) error { return nil }
+	f40 := func(_ context.Context, a1 Vars, a2 *int, a3 int) error { return nil }
+
+	type testcase struct {
+		api interface{}
+		err bool
+	}
+
+	testcases := []testcase{
+		{f00, false},
+		{f01, false},
+		{f02, false},
+
+		{f10, true},
+		{f20, true},
+		{f21, true},
+		{f22, true},
+		{f30, true},
+		{f40, true},
+	}
+	for i, tc := range testcases {
+		_, err := parseMethod(tc.api)
+		if err != nil && tc.err {
+			t.Logf("case%d expect: %v", i, err)
+		} else if err == nil && !tc.err {
+			t.Logf("case%d expect: success", i)
+		} else {
+			t.Errorf("case%d unexpect: err[%v, %t]", i, err, tc.err)
+		}
+	}
+}
+
+func TestCallMethod(t *testing.T) {
+	f00 := func(_ context.Context, a1 Vars, a2 *int, a3 *int) error { return nil }
+	f01 := func(_ context.Context, a1 Vars, a2 *int, a3 *int) error { return nil }
+	f02 := func(_ context.Context, a1 Vars, a2 interface{}, a3 interface{}) error { return nil }
+	f03 := func(_ context.Context, a1 Vars, a2 *interface{}, a3 *interface{}) error { return nil }
+	f04 := func(_ context.Context, a1 Vars, a2 *interface{}, a3 *interface{}) error {
+		return fmt.Errorf("f04 error: a=%s, b=%s", a1.Get("a"), a1.Get("b"))
+	}
+
+	type testcase struct {
+		api interface{}
+		err bool
+	}
+
+	testcases := []testcase{
+		{f00, false},
+		{f01, false},
+		{f02, false},
+		{f03, false},
+		{f04, true},
+	}
+
+	ctx := context.Background()
+	values, err := url.ParseQuery("a=3&a=2&a=banana;b=c")
+	if err != nil {
+		t.Fatalf("parse query: %v", err)
+	}
+
+	for i, tc := range testcases {
+		m, err := parseMethod(tc.api)
+		if err != nil {
+			t.Fatalf("case%d parse method: %v", i, err)
+		}
+		err = m.Call(ctx, Vars(values), m.NewArg(), m.NewReply())
+		if err != nil && tc.err {
+			t.Logf("case%d expect: %v", i, err)
+		} else if err == nil && !tc.err {
+			t.Logf("case%d expect: success", i)
+		} else {
+			t.Errorf("case%d unexpect: err[%v, %t]", i, err, tc.err)
+		}
+	}
+}
+
+/*
 func testfunc0(a, b int, c *int) error {
 	fmt.Printf("%d, %d, %d\n", a, b, *c)
 	return nil
@@ -112,3 +197,4 @@ func TestNullInterface(t *testing.T) {
 		t.Errorf("reply is a null interface, reply[%v]", m.replyType)
 	}
 }
+*/

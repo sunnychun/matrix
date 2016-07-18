@@ -1,13 +1,19 @@
 package rest
 
 import (
+	"ac-common-go/net/context"
 	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/bmizerany/pat"
-	"golang.org/x/net/context"
 )
+
+func Must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
 
 type Rest struct {
 	mux          *pat.PatternServeMux
@@ -25,71 +31,71 @@ func New() *Rest {
 	return r
 }
 
-func (rest *Rest) AddCodec(name string, codec Codec) {
-	rest.codecs[name] = codec
+func (r *Rest) AddCodec(name string, codec Codec) {
+	r.codecs[name] = codec
 }
 
-func (rest *Rest) lookupCodec(name string) (Codec, bool) {
-	c, ok := rest.codecs[name]
+func (r *Rest) lookupCodec(name string) (Codec, bool) {
+	c, ok := r.codecs[name]
 	return c, ok
 }
 
-func (rest *Rest) Head(pat string, api interface{}) error {
-	return rest.add("HEAD", pat, api)
+func (r *Rest) Head(pat string, api interface{}) error {
+	return r.add("HEAD", pat, api)
 }
 
-func (rest *Rest) Get(pat string, api interface{}) error {
-	return rest.add("GET", pat, api)
+func (r *Rest) Get(pat string, api interface{}) error {
+	return r.add("GET", pat, api)
 }
 
-func (rest *Rest) Put(pat string, api interface{}) error {
-	return rest.add("PUT", pat, api)
+func (r *Rest) Put(pat string, api interface{}) error {
+	return r.add("PUT", pat, api)
 }
 
-func (rest *Rest) Post(pat string, api interface{}) error {
-	return rest.add("POST", pat, api)
+func (r *Rest) Post(pat string, api interface{}) error {
+	return r.add("POST", pat, api)
 }
 
-func (rest *Rest) Delete(pat string, api interface{}) error {
-	return rest.add("DELETE", pat, api)
+func (r *Rest) Delete(pat string, api interface{}) error {
+	return r.add("DELETE", pat, api)
 }
 
-func (rest *Rest) Options(pat string, api interface{}) error {
-	return rest.add("OPTIONS", pat, api)
+func (r *Rest) Options(pat string, api interface{}) error {
+	return r.add("OPTIONS", pat, api)
 }
 
-func (rest *Rest) Patch(pat string, api interface{}) error {
-	return rest.add("PATCH", pat, api)
+func (r *Rest) Patch(pat string, api interface{}) error {
+	return r.add("PATCH", pat, api)
 }
 
-func (rest *Rest) add(meth, pat string, api interface{}) error {
+func (r *Rest) add(meth, pat string, api interface{}) error {
 	m, err := parseMethod(api)
 	if err != nil {
 		return fmt.Errorf("parse method: %v", err)
 	}
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		rest.serve(m, w, r)
+	fn := func(w http.ResponseWriter, req *http.Request) {
+		r.serve(m, w, req)
 	}
-	rest.mux.Add(meth, pat, http.HandlerFunc(fn))
+	r.mux.Add(meth, pat, http.HandlerFunc(fn))
 	return nil
 }
 
-func (rest *Rest) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rest.mux.ServeHTTP(w, r)
+func (r *Rest) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	r.mux.ServeHTTP(w, req)
 }
 
-func (rest *Rest) serve(m *method, w http.ResponseWriter, r *http.Request) {
-	sequence := getSequence(r.Header)
-	contentType := getContentType(r.Header)
+func (r *Rest) serve(m *method, w http.ResponseWriter, req *http.Request) {
+	sequence := getSequence(req.Header)
+	contentType := getContentType(req.Header)
 	if contentType == "" {
-		contentType = rest.defaultCodec
+		contentType = r.defaultCodec
 	}
 
 	setSequence(w.Header(), sequence)
 	setContentType(w.Header(), contentType)
 
 	//lookup codec
-	codec, ok := rest.lookupCodec(contentType)
+	codec, ok := r.lookupCodec(contentType)
 	if !ok {
 		setErr(w, http.StatusBadRequest, fmt.Errorf("unsupport Content-Type: %q", contentType))
 		return
@@ -101,21 +107,20 @@ func (rest *Rest) serve(m *method, w http.ResponseWriter, r *http.Request) {
 
 	//Decode
 	if !m.ArgIsNullInterface() {
-		if r.Body == nil {
+		if req.Body == nil {
 			setErr(w, http.StatusBadRequest, errors.New("body is nil"))
 			return
 		}
-		if err = codec.Decode(r.Body, argv.Interface()); err != nil {
+		if err = codec.Decode(req.Body, argv.Interface()); err != nil {
 			setErr(w, http.StatusBadRequest, err)
 			return
 		}
 	}
 
 	//Call
-	values := r.URL.Query()
+	vars := Vars(req.URL.Query())
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, "values", values)
-	if err = m.Call(ctx, argv, replyv); err != nil {
+	if err = m.Call(ctx, vars, argv, replyv); err != nil {
 		setErr(w, http.StatusInternalServerError, err)
 		return
 	}
