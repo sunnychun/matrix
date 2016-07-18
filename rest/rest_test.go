@@ -13,7 +13,7 @@ import (
 func TestRest(t *testing.T) {
 	f := func(ctx context.Context, vars Vars, req interface{}, resp interface{}) error {
 		fmt.Printf("uid=%q, phone=%q\n", vars.Get(":uid"), vars.Get(":phone"))
-		return nil
+		return fmt.Errorf("func return an error")
 	}
 
 	r := New()

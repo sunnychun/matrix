@@ -97,7 +97,7 @@ func (r *Rest) serve(m *method, w http.ResponseWriter, req *http.Request) {
 	//lookup codec
 	codec, ok := r.lookupCodec(contentType)
 	if !ok {
-		setErr(w, http.StatusBadRequest, fmt.Errorf("unsupport Content-Type: %q", contentType))
+		setErr(w, fmt.Errorf("unsupport Content-Type: %q", contentType))
 		return
 	}
 
@@ -108,11 +108,11 @@ func (r *Rest) serve(m *method, w http.ResponseWriter, req *http.Request) {
 	//Decode
 	if !m.ArgIsNullInterface() {
 		if req.Body == nil {
-			setErr(w, http.StatusBadRequest, errors.New("body is nil"))
+			setErr(w, errors.New("body is nil"))
 			return
 		}
 		if err = codec.Decode(req.Body, argv.Interface()); err != nil {
-			setErr(w, http.StatusBadRequest, err)
+			setErr(w, err)
 			return
 		}
 	}
@@ -121,14 +121,14 @@ func (r *Rest) serve(m *method, w http.ResponseWriter, req *http.Request) {
 	vars := Vars(req.URL.Query())
 	ctx := context.Background()
 	if err = m.Call(ctx, vars, argv, replyv); err != nil {
-		setErr(w, http.StatusInternalServerError, err)
+		setErr(w, err)
 		return
 	}
 
 	//Encode
 	if !m.ReplyIsNullInterface() {
 		if err = codec.Encode(w, replyv.Interface()); err != nil {
-			setErr(w, http.StatusInternalServerError, err)
+			setErr(w, err)
 			return
 		}
 	}
@@ -136,10 +136,9 @@ func (r *Rest) serve(m *method, w http.ResponseWriter, req *http.Request) {
 	setMsgName(w.Header(), "Ack")
 }
 
-func setErr(w http.ResponseWriter, status int, err error) {
+func setErr(w http.ResponseWriter, err error) {
 	setMsgName(w.Header(), "Err")
 	setContentType(w.Header(), "text/plain")
-	w.WriteHeader(status)
 	fmt.Fprintf(w, err.Error())
 }
 
