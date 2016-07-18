@@ -3,33 +3,66 @@ package rest
 import (
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/bmizerany/pat"
 	"golang.org/x/net/context"
 )
 
-type Codec interface {
-	Decode(io.Reader, interface{}) error
-	Encode(io.Writer, interface{}) error
-}
-
 type Rest struct {
-	mux    *pat.PatternServeMux
-	codecs map[string]Codec
+	mux          *pat.PatternServeMux
+	codecs       map[string]Codec
+	defaultCodec string
 }
 
 func New() *Rest {
-	return &Rest{mux: pat.New()}
+	r := &Rest{
+		mux:    pat.New(),
+		codecs: make(map[string]Codec),
+	}
+	r.defaultCodec = "text/json"
+	r.AddCodec("text/json", JsonCodec{})
+	return r
 }
 
-/*
-func (r *Rest) Post(pattern string, fun interface{}) error {
+func (rest *Rest) AddCodec(name string, codec Codec) {
+	rest.codecs[name] = codec
 }
-*/
 
-func (rest *Rest) register(meth, pat string, api interface{}) error {
+func (rest *Rest) lookupCodec(name string) (Codec, bool) {
+	c, ok := rest.codecs[name]
+	return c, ok
+}
+
+func (rest *Rest) Head(pat string, api interface{}) error {
+	return rest.add("HEAD", pat, api)
+}
+
+func (rest *Rest) Get(pat string, api interface{}) error {
+	return rest.add("GET", pat, api)
+}
+
+func (rest *Rest) Put(pat string, api interface{}) error {
+	return rest.add("PUT", pat, api)
+}
+
+func (rest *Rest) Post(pat string, api interface{}) error {
+	return rest.add("POST", pat, api)
+}
+
+func (rest *Rest) Delete(pat string, api interface{}) error {
+	return rest.add("DELETE", pat, api)
+}
+
+func (rest *Rest) Options(pat string, api interface{}) error {
+	return rest.add("OPTIONS", pat, api)
+}
+
+func (rest *Rest) Patch(pat string, api interface{}) error {
+	return rest.add("PATCH", pat, api)
+}
+
+func (rest *Rest) add(meth, pat string, api interface{}) error {
 	m, err := parseMethod(api)
 	if err != nil {
 		return fmt.Errorf("parse method: %v", err)
@@ -46,12 +79,19 @@ func (rest *Rest) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rest *Rest) serve(m *method, w http.ResponseWriter, r *http.Request) {
+	sequence := getSequence(r.Header)
 	contentType := getContentType(r.Header)
+	if contentType == "" {
+		contentType = rest.defaultCodec
+	}
+
+	setSequence(w.Header(), sequence)
+	setContentType(w.Header(), contentType)
 
 	//lookup codec
 	codec, ok := rest.lookupCodec(contentType)
 	if !ok {
-		setErr(w, http.StatusBadRequest, fmt.Errorf("unsupport Content-Type: %s", contentType))
+		setErr(w, http.StatusBadRequest, fmt.Errorf("unsupport Content-Type: %q", contentType))
 		return
 	}
 
@@ -75,13 +115,10 @@ func (rest *Rest) serve(m *method, w http.ResponseWriter, r *http.Request) {
 	values := r.URL.Query()
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, "values", values)
-	ctx = context.WithValue(ctx, "header", r.Header)
 	if err = m.Call(ctx, argv, replyv); err != nil {
 		setErr(w, http.StatusInternalServerError, err)
 		return
 	}
-
-	setContentType(w.Header(), contentType)
 
 	//Encode
 	if !m.ReplyIsNullInterface() {
@@ -90,19 +127,31 @@ func (rest *Rest) serve(m *method, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	setMsgName(w.Header(), "Ack")
 }
 
-func (rest *Rest) lookupCodec(name string) (Codec, bool) {
-	c, ok := rest.codecs[name]
-	return c, ok
+func setErr(w http.ResponseWriter, status int, err error) {
+	setMsgName(w.Header(), "Err")
+	setContentType(w.Header(), "text/plain")
+	w.WriteHeader(status)
+	fmt.Fprintf(w, err.Error())
 }
 
-func getSeq(h http.Header) string {
+func setMsgName(h http.Header, v string) {
+	if v != "" {
+		h.Set("X-Msg-Name", v)
+	}
+}
+
+func getSequence(h http.Header) string {
 	return h.Get("X-Sequence")
 }
 
-func setSeq(h http.Header, v string) {
-	h.Set("X-Sequence", v)
+func setSequence(h http.Header, v string) {
+	if v != "" {
+		h.Set("X-Sequence", v)
+	}
 }
 
 func getContentType(h http.Header) string {
@@ -110,10 +159,7 @@ func getContentType(h http.Header) string {
 }
 
 func setContentType(h http.Header, v string) {
-	h.Set("Content-Type", v)
-}
-
-func setErr(w http.ResponseWriter, status int, err error) {
-	w.WriteHeader(status)
-	fmt.Fprintf(w, `{"error":"%s"}`, err.Error())
+	if v != "" {
+		h.Set("Content-Type", v)
+	}
 }

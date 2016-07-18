@@ -14,8 +14,9 @@ type Response struct {
 
 func TestRestRegister(t *testing.T) {
 	rest := New()
-	err := rest.register("GET", "/test", func(_ interface{}, a interface{}, resp *Response) error {
+	err := rest.add("GET", "/test", func(_ interface{}, a interface{}, resp *Response) error {
 		resp.A = 1
+		return nil
 		return errors.New("test error")
 	})
 	if err != nil {
