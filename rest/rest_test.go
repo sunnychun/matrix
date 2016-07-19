@@ -1,27 +1,42 @@
 package rest
 
 import (
-	"fmt"
+	"bytes"
+	"errors"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"golang.org/x/net/context"
 )
 
 func TestRest(t *testing.T) {
-	f := func(ctx context.Context, vars Vars, req interface{}, resp interface{}) error {
-		fmt.Printf("uid=%q, phone=%q\n", vars.Get(":uid"), vars.Get(":phone"))
-		return fmt.Errorf("func return an error")
+	type Request struct {
+		Echo string
+	}
+	type Response struct {
+		Echo string
+	}
+	echo := func(ctx context.Context, vars Vars, req *Request, resp *Response) error {
+		resp.Echo = req.Echo
+		return nil
+	}
+	echo1 := func(ctx context.Context, vars Vars, req interface{}, resp *Response) error {
+		resp.Echo = vars.Get(":echo")
+		return errors.New("echo1 error")
 	}
 
 	r := New()
-	Must(r.Get("/account/uid/:uid", f))
-	Must(r.Get("/account/phone/:phone", f))
+	r.SetLogProto(true)
+	r.SetLogger(log.New(os.Stdout, "[rest-log] ", log.LstdFlags))
+	Must(r.Get("/echo", echo))
+	Must(r.Get("/echo/:echo", echo1))
 
-	testfunc := func(method, urlstr string) {
-		req, err := http.NewRequest(method, urlstr, nil)
+	testfunc := func(method, urlstr, body string) {
+		req, err := http.NewRequest(method, urlstr, bytes.NewBufferString(body))
 		if err != nil {
 			t.Fatalf("new request: %v", err)
 		}
@@ -36,6 +51,6 @@ func TestRest(t *testing.T) {
 		t.Logf("Body: %s", string(buf))
 	}
 
-	testfunc("GET", "/account/uid/1")
-	testfunc("GET", "/account/phone/13564171399")
+	testfunc("GET", "/echo", `{"Echo":"hello, world"}`)
+	testfunc("GET", "/echo/hello,world", ``)
 }

@@ -2,9 +2,15 @@ package rest
 
 import (
 	"ac-common-go/net/context"
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"net/http/httputil"
+	"os"
+	"strings"
+	"time"
 
 	"github.com/bmizerany/pat"
 )
@@ -16,6 +22,9 @@ func Must(err error) {
 }
 
 type Rest struct {
+	log      Logger
+	logProto bool
+
 	mux          *pat.PatternServeMux
 	codecs       map[string]Codec
 	defaultCodec string
@@ -23,12 +32,26 @@ type Rest struct {
 
 func New() *Rest {
 	r := &Rest{
+		log:      noOpLogger{},
+		logProto: false,
+
 		mux:    pat.New(),
 		codecs: make(map[string]Codec),
 	}
 	r.defaultCodec = "text/json"
 	r.AddCodec("text/json", JsonCodec{})
 	return r
+}
+
+func (r *Rest) SetLogger(log Logger) {
+	if log == nil {
+		r.log = noOpLogger{}
+	}
+	r.log = log
+}
+
+func (r *Rest) SetLogProto(isLog bool) {
+	r.logProto = isLog
 }
 
 func (r *Rest) AddCodec(name string, codec Codec) {
@@ -74,17 +97,13 @@ func (r *Rest) add(meth, pat string, api interface{}) error {
 		return fmt.Errorf("parse method: %v", err)
 	}
 	fn := func(w http.ResponseWriter, req *http.Request) {
-		r.serve(m, w, req)
+		r.serve(meth, pat, m, w, req)
 	}
 	r.mux.Add(meth, pat, http.HandlerFunc(fn))
 	return nil
 }
 
-func (r *Rest) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r.mux.ServeHTTP(w, req)
-}
-
-func (r *Rest) serve(m *method, w http.ResponseWriter, req *http.Request) {
+func (r *Rest) serve(meth, pat string, m *method, w http.ResponseWriter, req *http.Request) {
 	sequence := getSequence(req.Header)
 	contentType := getContentType(req.Header)
 	if contentType == "" {
@@ -97,6 +116,7 @@ func (r *Rest) serve(m *method, w http.ResponseWriter, req *http.Request) {
 	//lookup codec
 	codec, ok := r.lookupCodec(contentType)
 	if !ok {
+		r.log.Printf("(%q %q) unsupport Content-Type: %q", meth, pat, contentType)
 		setErr(w, fmt.Errorf("unsupport Content-Type: %q", contentType))
 		return
 	}
@@ -108,11 +128,13 @@ func (r *Rest) serve(m *method, w http.ResponseWriter, req *http.Request) {
 	//Decode
 	if !m.ArgIsNullInterface() {
 		if req.Body == nil {
-			setErr(w, errors.New("body is nil"))
+			r.log.Printf("(%q %q) request body is nil", meth, pat)
+			setErr(w, errors.New("request body is nil"))
 			return
 		}
 		if err = codec.Decode(req.Body, argv.Interface()); err != nil {
-			setErr(w, err)
+			r.log.Printf("(%q %q) decode: %v", meth, pat, err)
+			setErr(w, fmt.Errorf("decode: %v", err))
 			return
 		}
 	}
@@ -121,19 +143,37 @@ func (r *Rest) serve(m *method, w http.ResponseWriter, req *http.Request) {
 	vars := Vars(req.URL.Query())
 	ctx := context.Background()
 	if err = m.Call(ctx, vars, argv, replyv); err != nil {
-		setErr(w, err)
+		r.log.Printf("(%q %q) call: %v", meth, pat, err)
+		setErr(w, fmt.Errorf("call: %v", err))
 		return
 	}
 
 	//Encode
 	if !m.ReplyIsNullInterface() {
 		if err = codec.Encode(w, replyv.Interface()); err != nil {
-			setErr(w, err)
+			r.log.Printf("(%q %q) encode: %v", meth, pat, err)
+			setErr(w, fmt.Errorf("encode: %v", err))
 			return
 		}
 	}
 
 	setMsgName(w.Header(), "Ack")
+}
+
+func (r *Rest) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if r.logProto {
+		_, ok := r.log.(noOpLogger)
+		if !ok {
+			lrw := &logResponseWriter{ResponseWriter: w, proto: req.Proto, status: http.StatusOK}
+			w = lrw
+
+			start := time.Now()
+			printRequest(r.log, start, req)
+			defer printResponse(r.log, start, lrw)
+		}
+	}
+
+	r.mux.ServeHTTP(w, req)
 }
 
 func setErr(w http.ResponseWriter, err error) {
@@ -166,4 +206,61 @@ func setContentType(h http.Header, v string) {
 	if v != "" {
 		h.Set("Content-Type", v)
 	}
+}
+
+var sep = []byte("\r\n" + strings.Repeat("-", 80) + "\r\n")
+
+func printRequest(logger Logger, start time.Time, req *http.Request) {
+	dump, err := httputil.DumpRequest(req, true)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "dump request: %v\r\n", err)
+		return
+	}
+
+	var w bytes.Buffer
+	fmt.Fprintf(&w, "[%s] Request:\r\n", start)
+	w.Write(dump)
+	w.Write(sep)
+	logger.Printf(w.String())
+}
+
+func printResponse(logger Logger, start time.Time, lrw *logResponseWriter) {
+	end := time.Now()
+	dump := lrw.DumpResponse()
+
+	var w bytes.Buffer
+	fmt.Fprintf(&w, "[%s][%s] Response:\r\n", end, end.Sub(start))
+	w.Write(dump)
+	w.Write(sep)
+	logger.Printf(w.String())
+}
+
+type logResponseWriter struct {
+	http.ResponseWriter
+	proto  string
+	status int
+	buffer bytes.Buffer
+}
+
+func (w *logResponseWriter) WriteHeader(status int) {
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *logResponseWriter) Write(p []byte) (int, error) {
+	w.buffer.Write(p)
+	return w.ResponseWriter.Write(p)
+}
+
+func (w *logResponseWriter) DumpResponse() []byte {
+	var out bytes.Buffer
+	fmt.Fprintf(&out, "%s %d %s\r\n", w.proto, w.status, http.StatusText(w.status))
+	if len(w.Header()) > 0 {
+		w.Header().Write(&out)
+	}
+	fmt.Fprintf(&out, "\r\n")
+	if w.buffer.Len() > 0 {
+		io.Copy(&out, &w.buffer)
+	}
+	return out.Bytes()
 }
