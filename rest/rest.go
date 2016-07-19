@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"ac-common-go/net/context"
 	"bytes"
 	"errors"
 	"fmt"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/bmizerany/pat"
+	"golang.org/x/net/context"
 )
 
 func Must(err error) {
