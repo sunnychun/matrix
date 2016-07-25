@@ -1,13 +1,13 @@
 package rest
 
 import (
-	"bytes"
 	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"golang.org/x/net/context"
@@ -36,7 +36,7 @@ func TestRest(t *testing.T) {
 	Must(r.Get("/echo/:echo", echo1))
 
 	testfunc := func(method, urlstr, body string) {
-		req, err := http.NewRequest(method, urlstr, bytes.NewBufferString(body))
+		req, err := http.NewRequest(method, urlstr, strings.NewReader(body))
 		if err != nil {
 			t.Fatalf("new request: %v", err)
 		}
