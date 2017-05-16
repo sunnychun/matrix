@@ -1,8 +1,10 @@
 package tlog
 
 import (
+	"context"
 	"os"
 
+	"github.com/ironzhang/matrix/context-value"
 	"github.com/ironzhang/matrix/tlog/writers/file"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -11,9 +13,7 @@ import (
 var std *zap.Logger
 
 func init() {
-	var err error
-	std, err = zap.NewDevelopment()
-	if err != nil {
+	if err := Reset(); err != nil {
 		panic(err)
 	}
 }
@@ -68,6 +68,12 @@ func (cfg Config) buildOptions(sink zapcore.WriteSyncer) []zap.Option {
 	return opts
 }
 
+func Reset() error {
+	var err error
+	std, err = zap.NewDevelopment()
+	return err
+}
+
 func Init(cfg Config) error {
 	sink, err := cfg.openSinks()
 	if err != nil {
@@ -82,4 +88,12 @@ func Init(cfg Config) error {
 
 func Std() *zap.Logger {
 	return std
+}
+
+func WithContext(ctx context.Context) *zap.Logger {
+	log := std
+	if traceId := context_value.ParseTraceId(ctx); traceId != "" {
+		log = log.With(zap.String("trace-id", traceId))
+	}
+	return log
 }
