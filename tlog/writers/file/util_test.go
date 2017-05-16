@@ -12,7 +12,7 @@ func FileExist(name string) bool {
 	if err == nil {
 		return true
 	}
-	return os.IsExist(err)
+	return false
 }
 
 func TestFileName(t *testing.T) {

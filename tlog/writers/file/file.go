@@ -9,6 +9,7 @@ import (
 )
 
 const bufferSize = 256 * 1024
+const defaultMaxBytes = 1024 * 1024 * 1024
 
 type Options struct {
 	Dir      string
@@ -17,11 +18,14 @@ type Options struct {
 }
 
 func Open(opts Options) (*File, error) {
+	if opts.Dir == "" {
+		opts.Dir = os.TempDir()
+	}
 	if opts.Program == "" {
 		opts.Program = filepath.Base(os.Args[0])
 	}
 	if opts.MaxBytes <= 0 {
-		opts.MaxBytes = 1024 * 1024 * 1024
+		opts.MaxBytes = defaultMaxBytes
 	}
 
 	var f File
@@ -92,6 +96,16 @@ func (f *File) Flush() error {
 		return &os.PathError{"flush", f.path(), os.ErrClosed}
 	}
 	return f.bufw.Flush()
+}
+
+func (f *File) Sync() error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.closed {
+		return &os.PathError{"flush", f.path(), os.ErrClosed}
+	}
+	f.bufw.Flush()
+	return f.file.Sync()
 }
 
 func (f *File) Write(p []byte) (n int, err error) {
