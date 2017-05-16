@@ -18,9 +18,6 @@ type Options struct {
 }
 
 func Open(opts Options) (*File, error) {
-	if opts.Dir == "" {
-		opts.Dir = os.TempDir()
-	}
 	if opts.Program == "" {
 		opts.Program = filepath.Base(os.Args[0])
 	}

@@ -1,11 +1,13 @@
 package tlog_test
 
 import (
+	"os"
 	"testing"
 
 	"go.uber.org/zap"
 
 	"github.com/ironzhang/matrix/tlog"
+	"github.com/ironzhang/matrix/tlog/writers/file"
 )
 
 func TestTlog(t *testing.T) {
@@ -16,6 +18,9 @@ func TestTlog(t *testing.T) {
 		DisableStacktrace: true,
 		DisableStderr:     true,
 		EnableFile:        true,
+		FileOptions: file.Options{
+			Dir: os.TempDir(),
+		},
 	}
 	if err := tlog.Init(cfg); err != nil {
 		t.Fatal(err)
