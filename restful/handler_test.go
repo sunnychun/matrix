@@ -2,6 +2,8 @@ package restful
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"reflect"
 	"testing"
 	"time"
@@ -164,6 +166,170 @@ func TestParseHandler(t *testing.T) {
 		if h.in2Type != reflect.TypeOf(f).In(2) {
 			t.Errorf("rights[%d]: in2 type: %s != %s", i, h.in2Type, reflect.TypeOf(f).In(2))
 			continue
+		}
+	}
+}
+
+func TestHandleReturnNil(t *testing.T) {
+	tests := []interface{}{
+		func(context.Context, interface{}, interface{}) error { return nil },
+		func(Context, interface{}, interface{}) error { return nil },
+		func(Context, int, interface{}) error { return nil },
+		func(Context, *int, interface{}) error { return nil },
+		func(Context, AStruct, interface{}) error { return nil },
+		func(Context, *AStruct, interface{}) error { return nil },
+		func(Context, interface{}, *int) error { return nil },
+		func(Context, interface{}, *AStruct) error { return nil },
+	}
+	for i, f := range tests {
+		h, err := parseHandler(f)
+		if err != nil {
+			t.Errorf("tests[%d]: parse handler: %v", i, err)
+			continue
+		}
+		err = h.Handle(context.Background(), newReflectValue(h.in1Type), newReflectValue(h.in2Type))
+		if err != nil {
+			t.Errorf("tests[%d]: handle: %v", i, err)
+			continue
+		}
+	}
+}
+
+func TestHandleReturnErr(t *testing.T) {
+	f := func(context.Context, interface{}, interface{}) error { return io.EOF }
+	h, err := parseHandler(f)
+	if err != nil {
+		t.Fatalf("parse handler: %v", err)
+	}
+	err = h.Handle(context.Background(), newReflectValue(h.in1Type), newReflectValue(h.in2Type))
+	if err != io.EOF {
+		t.Errorf("err: %v != %v", err, io.EOF)
+	}
+}
+
+func TestHandler(t *testing.T) {
+	type Request struct {
+		A, B int
+	}
+	type Response struct {
+		C int
+	}
+
+	var calls int
+	f := func(ctx context.Context, req *Request, resp *Response) error {
+		calls++
+		resp.C = req.A + req.B
+		return nil
+	}
+	h, err := parseHandler(f)
+	if err != nil {
+		t.Fatalf("parse handler: %v", err)
+	}
+
+	var req Request
+	var resp Response
+	req.A = 1
+	req.B = 2
+	if err = h.Handle(context.Background(), reflect.ValueOf(&req), reflect.ValueOf(&resp)); err != nil {
+		t.Fatalf("handle: %v", err)
+	}
+	if calls != 1 {
+		t.Errorf("calls != 1", calls)
+	}
+	if resp.C != req.A+req.B {
+		t.Errorf("C(%d) != A(%d) + B(%d)", resp.C, req.A, req.B)
+	}
+}
+
+func TestIsNilInterface(t *testing.T) {
+	f := func(context.Context, interface{}, interface{}) error { return io.EOF }
+	h, err := parseHandler(f)
+	if err != nil {
+		t.Fatalf("parse handler: %v", err)
+	}
+	if got, want := isNilInterface(h.in1Type), true; got != want {
+		t.Errorf("in1: got(%t) != want(%t)", got, want)
+	}
+	if got, want := isNilInterface(h.in2Type), true; got != want {
+		t.Errorf("in2: got(%t) != want(%t)", got, want)
+	}
+
+	{
+		want := true
+		var v interface{}
+		if got := isNilInterface(reflect.TypeOf(&v).Elem()); got != want {
+			t.Errorf("%T: got(%t) != want(%t)", v, got, want)
+		}
+	}
+	{
+		want := false
+		var v struct{}
+		if got := isNilInterface(reflect.TypeOf(&v).Elem()); got != want {
+			t.Errorf("%T: got(%t) != want(%t)", v, got, want)
+		}
+	}
+	{
+		want := false
+		var v int
+		if got := isNilInterface(reflect.TypeOf(&v).Elem()); got != want {
+			t.Errorf("%T: got(%t) != want(%t)", v, got, want)
+		}
+	}
+	{
+		want := false
+		var v *int
+		if got := isNilInterface(reflect.TypeOf(&v).Elem()); got != want {
+			t.Errorf("%T: got(%t) != want(%t)", v, got, want)
+		}
+	}
+	{
+		want := false
+		var v Context
+		if got := isNilInterface(reflect.TypeOf(&v).Elem()); got != want {
+			t.Errorf("%T: got(%t) != want(%t)", v, got, want)
+		}
+	}
+}
+
+func TestJSON(t *testing.T) {
+	{
+		var v interface{}
+		if buf, err := json.Marshal(v); err != nil {
+			t.Errorf("%T json marshal: %v", v, err)
+		} else {
+			t.Logf("%T buf: %s", v, buf)
+		}
+	}
+	{
+		var v struct{}
+		if buf, err := json.Marshal(v); err != nil {
+			t.Errorf("%T json marshal: %v", v, err)
+		} else {
+			t.Logf("%T buf: %s", v, buf)
+		}
+	}
+	{
+		var v int
+		if buf, err := json.Marshal(v); err != nil {
+			t.Errorf("%T json marshal: %v", v, err)
+		} else {
+			t.Logf("%T buf: %s", v, buf)
+		}
+	}
+	{
+		var v string
+		if buf, err := json.Marshal(v); err != nil {
+			t.Errorf("%T json marshal: %v", v, err)
+		} else {
+			t.Logf("%T buf: %s", v, buf)
+		}
+	}
+	{
+		var v float32
+		if buf, err := json.Marshal(v); err != nil {
+			t.Errorf("%T json marshal: %v", v, err)
+		} else {
+			t.Logf("%T buf: %s", v, buf)
 		}
 	}
 }

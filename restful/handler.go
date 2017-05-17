@@ -85,22 +85,25 @@ func parseHandler(i interface{}) (*handler, error) {
 }
 
 func (h *handler) Handle(ctx context.Context, in1, in2 reflect.Value) error {
+	if h.in1Type.Kind() != reflect.Ptr {
+		in1 = in1.Elem()
+	}
 	in := []reflect.Value{reflect.ValueOf(ctx), in1, in2}
 	out := h.value.Call(in)
 	ret := out[0].Interface()
-	if err, ok := ret.(error); ok {
-		return err
+	if ret != nil {
+		return ret.(error)
 	}
-	panic("handler returns not error")
+	return nil
 }
 
-func reflectNewValue(t reflect.Type) reflect.Value {
+func newReflectValue(t reflect.Type) reflect.Value {
 	if t.Kind() == reflect.Ptr {
 		return reflect.New(t.Elem())
 	}
 	return reflect.New(t)
 }
 
-func reflectIsNilInterface(t reflect.Type) bool {
+func isNilInterface(t reflect.Type) bool {
 	return t == typeOfNilInterface
 }
