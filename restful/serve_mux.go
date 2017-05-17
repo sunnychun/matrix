@@ -6,8 +6,11 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/ironzhang/matrix/codes"
 	"github.com/ironzhang/matrix/tlog"
 )
+
+const contentType = "application/json"
 
 type entry struct {
 	mu sync.RWMutex
@@ -84,12 +87,14 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	e, ok := m.getEntry(r.URL.Path)
 	if !ok {
-		log.Infow("page not found", "method", r.Method, "path", r.URL.Path)
+		setErrorStatus(w, http.StatusNotFound, codes.Internal)
+		log.Infow(http.StatusText(http.StatusNotFound), "method", r.Method, "path", r.URL.Path)
 		return
 	}
 	h, ok := e.GetHandler(r.Method)
 	if !ok {
-		log.Infow("method not allowed", "method", r.Method, "path", r.URL.Path)
+		setErrorStatus(w, http.StatusMethodNotAllowed, codes.Internal)
+		log.Infow(http.StatusText(http.StatusMethodNotAllowed), "method", r.Method, "path", r.URL.Path)
 		return
 	}
 	m.serve(h, w, r)
@@ -114,4 +119,20 @@ func (m *ServeMux) getEntry(pat string) (*entry, bool) {
 	e, ok := m.entrys[pat]
 	m.mu.RUnlock()
 	return e, ok
+}
+
+func setError(w http.ResponseWriter, err error) {
+	status := http.StatusBadRequest
+	if te, ok := err.(HTTPStatus); ok {
+		status = te.HTTPStatus()
+	}
+	e := toJSONError(err)
+	w.Header().Set("Content-Type", contentType)
+	w.WriteHeader(status)
+	fmt.Fprintln(w, e.Error())
+}
+
+func setErrorStatus(w http.ResponseWriter, status int, code codes.Code) {
+	err := NewError(status, code)
+	setError(w, err)
 }

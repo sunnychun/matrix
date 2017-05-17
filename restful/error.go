@@ -12,12 +12,24 @@ type HTTPStatus interface {
 	HTTPStatus() int
 }
 
-type Code interface {
-	Code() codes.Code
+type ErrorCode interface {
+	ErrorCode() codes.Code
 }
 
-type Cause interface {
-	Cause() string
+type ErrorCause interface {
+	ErrorCause() string
+}
+
+func NewError(status int, code codes.Code) Error {
+	return Error{Status: status, Code: code}
+}
+
+func NewCauseError(status int, code codes.Code, cause string) Error {
+	return Error{Status: status, Code: code, Cause: cause}
+}
+
+func Errorf(status int, code codes.Code, format string, a ...interface{}) Error {
+	return NewCauseError(status, code, fmt.Sprintf(format, a...))
 }
 
 type Error struct {
@@ -26,31 +38,16 @@ type Error struct {
 	Cause  string
 }
 
-func toError(err error) error {
-	if e, ok := err.(Error); ok {
-		return e
-	}
-	status := http.StatusInternalServerError
-	if e, ok := err.(HTTPStatus); ok {
-		status = e.HTTPStatus()
-	}
-	code := codes.Internal
-	if e, ok := err.(Code); ok {
-		code = e.Code()
-	}
-	cause := err.Error()
-	if e, ok := err.(Cause); ok {
-		cause = e.Cause()
-	}
-	return NewError(status, code, cause)
+func (e Error) HTTPStatus() int {
+	return e.Status
 }
 
-func NewError(status int, code codes.Code, cause string) Error {
-	return Error{Status: status, Code: code, Cause: cause}
+func (e Error) ErrorCode() codes.Code {
+	return e.Code
 }
 
-func Errorf(status int, code codes.Code, format string, a ...interface{}) Error {
-	return NewError(status, code, fmt.Sprintf(format, a...))
+func (e Error) ErrorCause() string {
+	return e.Cause
 }
 
 func (e Error) Error() string {
@@ -69,4 +66,23 @@ type jsonError struct {
 func (e jsonError) Error() string {
 	b, _ := json.Marshal(e)
 	return string(b)
+}
+
+func toJSONError(err error) error {
+	if e, ok := err.(jsonError); ok {
+		return e
+	}
+	code := codes.Internal
+	if e, ok := err.(ErrorCode); ok {
+		code = e.ErrorCode()
+	}
+	cause := err.Error()
+	if e, ok := err.(ErrorCause); ok {
+		cause = e.ErrorCause()
+	}
+	return jsonError{
+		Code:  int(code),
+		Desc:  code.String(),
+		Cause: cause,
+	}
 }
