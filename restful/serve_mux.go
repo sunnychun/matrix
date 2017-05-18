@@ -2,7 +2,6 @@ package restful
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -36,15 +35,20 @@ func (e *entry) GetHandler(meth string) (*handler, bool) {
 	return h, ok
 }
 
-func NewServeMux() *ServeMux {
+func NewServeMux(codec Codec) *ServeMux {
+	if codec == nil {
+		codec = JSONCodec{}
+	}
 	return &ServeMux{
 		verbose: 1,
+		codec:   codec,
 		entrys:  make(map[string]*entry),
 	}
 }
 
 type ServeMux struct {
 	verbose int
+	codec   Codec
 	mu      sync.RWMutex
 	entrys  map[string]*entry
 }
@@ -89,7 +93,7 @@ func (m *ServeMux) Add(meth, pat string, i interface{}) error {
 func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := context_value.WithTraceId(context.Background(), getTraceId(r.Header))
 	if err := m.serveHTTP(ctx, w, r); err != nil {
-		setError(w, err)
+		m.setError(w, err)
 	}
 }
 
@@ -108,23 +112,21 @@ func (m *ServeMux) serveHTTP(ctx context.Context, w http.ResponseWriter, r *http
 	return m.serve(ctx, h, w, r)
 }
 
-func (m *ServeMux) serve(ctx context.Context, h *handler, w http.ResponseWriter, r *http.Request) error {
+func (m *ServeMux) serve(ctx context.Context, h *handler, w http.ResponseWriter, r *http.Request) (err error) {
 	log := tlog.WithContext(ctx).Sugar()
 
 	// check Content-Type
-	if v := r.Header.Get("Content-Type"); v != "" && v != contentType {
-		cause := fmt.Sprintf("Content-Type(%s) not %s", v, contentType)
-		log.Infow(cause, "method", r.Method, "path", r.URL.Path)
-		return Errorf(http.StatusBadRequest, codes.InvalidHeader, cause)
+	if err = m.checkContentType(r.Header); err != nil {
+		log.Infow("check content type fail", "error", err, "method", r.Method, "path", r.URL.Path)
+		return Errorf(http.StatusBadRequest, codes.InvalidHeader, err.Error())
 	}
 
-	var err error
 	in1 := newReflectValue(h.in1Type)
 	in2 := newReflectValue(h.in2Type)
 
 	// Decode
 	if !isNilInterface(h.in1Type) {
-		if err = json.NewDecoder(r.Body).Decode(in1.Interface()); err != nil {
+		if err = m.codec.Decode(r.Body, in1.Interface()); err != nil {
 			log.Infow("decode fail", "error", err, "method", r.Method, "path", r.URL.Path)
 			return Errorf(http.StatusBadRequest, codes.DecodeFail, err.Error())
 		}
@@ -138,13 +140,31 @@ func (m *ServeMux) serve(ctx context.Context, h *handler, w http.ResponseWriter,
 
 	// Encode
 	if !isNilInterface(h.in2Type) {
-		if err = json.NewEncoder(w).Encode(in2.Interface()); err != nil {
+		w.Header().Set("Content-Type", m.codec.ContentType())
+		if err = m.codec.Encode(w, in2.Interface()); err != nil {
 			log.Errorw("encode fail", "error", err, "method", r.Method, "path", r.URL.Path)
 			return Errorf(http.StatusInternalServerError, codes.EncodeFail, err.Error())
 		}
 	}
 
 	return nil
+}
+
+func (m *ServeMux) checkContentType(h http.Header) error {
+	if v := h.Get("Content-Type"); v != "" && v != m.codec.ContentType() {
+		return fmt.Errorf("Content-Type not %s: %s", m.codec.ContentType(), v)
+	}
+	return nil
+}
+
+func (m *ServeMux) setError(w http.ResponseWriter, err error) {
+	status := http.StatusBadRequest
+	if te, ok := err.(HTTPStatus); ok {
+		status = te.HTTPStatus()
+	}
+	e := toRPCError(err)
+	w.WriteHeader(status)
+	m.codec.Encode(w, e)
 }
 
 func (m *ServeMux) addEntry(pat string) *entry {
@@ -163,16 +183,6 @@ func (m *ServeMux) getEntry(pat string) (*entry, bool) {
 	e, ok := m.entrys[pat]
 	m.mu.RUnlock()
 	return e, ok
-}
-
-func setError(w http.ResponseWriter, err error) {
-	status := http.StatusBadRequest
-	if te, ok := err.(HTTPStatus); ok {
-		status = te.HTTPStatus()
-	}
-	e := toRPCError(err)
-	w.WriteHeader(status)
-	fmt.Fprintln(w, e.Error())
 }
 
 func getTraceId(h http.Header) string {

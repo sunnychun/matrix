@@ -46,7 +46,7 @@ func (t *Arith) Div(ctx context.Context, args Args, reply *Reply) error {
 
 func NewArithServeMux() (m *ServeMux, err error) {
 	var a Arith
-	m = NewServeMux()
+	m = NewServeMux(nil)
 	if err = m.Add("POST", "/arith/add", a.Add); err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func TestServeMux(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r, err := ServeHTTP(m, "XPOST", "/arith/add", buf)
+	r, err := ServeHTTP(m, "POST", "/arith/add", buf)
 	if err != nil {
 		t.Fatal(err)
 	}

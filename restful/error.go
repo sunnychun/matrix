@@ -1,7 +1,6 @@
 package restful
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -64,8 +63,10 @@ type rpcError struct {
 }
 
 func (e rpcError) Error() string {
-	b, _ := json.Marshal(e)
-	return string(b)
+	if e.Cause != "" {
+		return fmt.Sprintf("%d: %s (%s)", e.Code, e.Desc, e.Cause)
+	}
+	return fmt.Sprintf("%d: %s", e.Code, e.Desc)
 }
 
 func toRPCError(err error) error {
