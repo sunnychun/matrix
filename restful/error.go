@@ -57,19 +57,19 @@ func (e Error) Error() string {
 	return fmt.Sprintf("[%d: %s] %d: %s", e.Status, http.StatusText(e.Status), e.Code, e.Code.String())
 }
 
-type jsonError struct {
+type rpcError struct {
 	Code  int    `json:"code"`
 	Desc  string `json:"desc"`
 	Cause string `json:"cause,omitempty"`
 }
 
-func (e jsonError) Error() string {
+func (e rpcError) Error() string {
 	b, _ := json.Marshal(e)
 	return string(b)
 }
 
-func toJSONError(err error) error {
-	if e, ok := err.(jsonError); ok {
+func toRPCError(err error) error {
+	if e, ok := err.(rpcError); ok {
 		return e
 	}
 	code := codes.Internal
@@ -80,7 +80,7 @@ func toJSONError(err error) error {
 	if e, ok := err.(ErrorCause); ok {
 		cause = e.ErrorCause()
 	}
-	return jsonError{
+	return rpcError{
 		Code:  int(code),
 		Desc:  code.String(),
 		Cause: cause,

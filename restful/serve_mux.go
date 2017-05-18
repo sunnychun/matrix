@@ -1,13 +1,17 @@
 package restful
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 	"sync"
 
 	"github.com/ironzhang/matrix/codes"
+	"github.com/ironzhang/matrix/context-value"
 	"github.com/ironzhang/matrix/tlog"
+	"github.com/ironzhang/matrix/uuid"
 )
 
 const contentType = "application/json"
@@ -83,13 +87,14 @@ func (m *ServeMux) Add(meth, pat string, i interface{}) error {
 }
 
 func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if err := m.serveHTTP(w, r); err != nil {
+	ctx := context_value.WithTraceId(context.Background(), getTraceId(r.Header))
+	if err := m.serveHTTP(ctx, w, r); err != nil {
 		setError(w, err)
 	}
 }
 
-func (m *ServeMux) serveHTTP(w http.ResponseWriter, r *http.Request) error {
-	log := tlog.Std().Sugar()
+func (m *ServeMux) serveHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	log := tlog.WithContext(ctx).Sugar()
 	e, ok := m.getEntry(r.URL.Path)
 	if !ok {
 		log.Infow(http.StatusText(http.StatusNotFound), "method", r.Method, "path", r.URL.Path)
@@ -100,10 +105,45 @@ func (m *ServeMux) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		log.Infow(http.StatusText(http.StatusMethodNotAllowed), "method", r.Method, "path", r.URL.Path)
 		return Errorf(http.StatusMethodNotAllowed, codes.NotAllowed, "method(%s) not allowed", r.Method)
 	}
-	return m.serve(h, w, r)
+	return m.serve(ctx, h, w, r)
 }
 
-func (m *ServeMux) serve(h *handler, w http.ResponseWriter, r *http.Request) error {
+func (m *ServeMux) serve(ctx context.Context, h *handler, w http.ResponseWriter, r *http.Request) error {
+	log := tlog.WithContext(ctx).Sugar()
+
+	// check Content-Type
+	if v := r.Header.Get("Content-Type"); v != "" && v != contentType {
+		cause := fmt.Sprintf("Content-Type(%s) not %s", v, contentType)
+		log.Infow(cause, "method", r.Method, "path", r.URL.Path)
+		return Errorf(http.StatusBadRequest, codes.InvalidHeader, cause)
+	}
+
+	var err error
+	in1 := newReflectValue(h.in1Type)
+	in2 := newReflectValue(h.in2Type)
+
+	// Decode
+	if !isNilInterface(h.in1Type) {
+		if err = json.NewDecoder(r.Body).Decode(in1.Interface()); err != nil {
+			log.Infow("decode fail", "error", err, "method", r.Method, "path", r.URL.Path)
+			return Errorf(http.StatusBadRequest, codes.DecodeFail, err.Error())
+		}
+	}
+
+	// Handle
+	if err = h.Handle(ctx, in1, in2); err != nil {
+		log.Infow("handle fail", "error", err, "method", r.Method, "path", r.URL.Path)
+		return err
+	}
+
+	// Encode
+	if !isNilInterface(h.in2Type) {
+		if err = json.NewEncoder(w).Encode(in2.Interface()); err != nil {
+			log.Errorw("encode fail", "error", err, "method", r.Method, "path", r.URL.Path)
+			return Errorf(http.StatusInternalServerError, codes.EncodeFail, err.Error())
+		}
+	}
+
 	return nil
 }
 
@@ -130,13 +170,14 @@ func setError(w http.ResponseWriter, err error) {
 	if te, ok := err.(HTTPStatus); ok {
 		status = te.HTTPStatus()
 	}
-	e := toJSONError(err)
-	w.Header().Set("Content-Type", contentType)
+	e := toRPCError(err)
 	w.WriteHeader(status)
 	fmt.Fprintln(w, e.Error())
 }
 
-func setErrorStatus(w http.ResponseWriter, status int, code codes.Code) {
-	err := NewError(status, code)
-	setError(w, err)
+func getTraceId(h http.Header) string {
+	if v := h.Get("X-Trace-Id"); v != "" {
+		return v
+	}
+	return uuid.New().String()
 }
