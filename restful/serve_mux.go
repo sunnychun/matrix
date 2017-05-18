@@ -83,24 +83,28 @@ func (m *ServeMux) Add(meth, pat string, i interface{}) error {
 }
 
 func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log := tlog.Std().Sugar()
+	if err := m.serveHTTP(w, r); err != nil {
+		setError(w, err)
+	}
+}
 
+func (m *ServeMux) serveHTTP(w http.ResponseWriter, r *http.Request) error {
+	log := tlog.Std().Sugar()
 	e, ok := m.getEntry(r.URL.Path)
 	if !ok {
-		setErrorStatus(w, http.StatusNotFound, codes.Internal)
 		log.Infow(http.StatusText(http.StatusNotFound), "method", r.Method, "path", r.URL.Path)
-		return
+		return Errorf(http.StatusNotFound, codes.NotFound, "page(%s) not found", r.URL.Path)
 	}
 	h, ok := e.GetHandler(r.Method)
 	if !ok {
-		setErrorStatus(w, http.StatusMethodNotAllowed, codes.Internal)
 		log.Infow(http.StatusText(http.StatusMethodNotAllowed), "method", r.Method, "path", r.URL.Path)
-		return
+		return Errorf(http.StatusMethodNotAllowed, codes.NotAllowed, "method(%s) not allowed", r.Method)
 	}
-	m.serve(h, w, r)
+	return m.serve(h, w, r)
 }
 
-func (m *ServeMux) serve(h *handler, w http.ResponseWriter, r *http.Request) {
+func (m *ServeMux) serve(h *handler, w http.ResponseWriter, r *http.Request) error {
+	return nil
 }
 
 func (m *ServeMux) addEntry(pat string) *entry {

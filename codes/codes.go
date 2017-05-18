@@ -13,9 +13,13 @@ const (
 
 	Aborted Code = -3
 
-	InvalidParam Code = -4
+	NotFound Code = -4
 
-	OutOfRange Code = -5
+	NotAllowed Code = -5
+
+	InvalidParam Code = -6
+
+	OutOfRange Code = -7
 )
 
 var codes = map[Code]string{
@@ -23,6 +27,8 @@ var codes = map[Code]string{
 	Internal:     "internal",
 	Unknown:      "unknown",
 	Aborted:      "aborted",
+	NotFound:     "not found",
+	NotAllowed:   "not allowed",
 	InvalidParam: "invalid param",
 	OutOfRange:   "out of range",
 }

@@ -76,7 +76,7 @@ func TestServeMux(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r, err := ServeHTTP(m, "XPOST", "/arith/add")
+	r, err := ServeHTTP(m, "XPOST", "/arith/add/v1")
 	if err != nil {
 		t.Fatal(err)
 	}
