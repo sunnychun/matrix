@@ -13,8 +13,6 @@ import (
 	"github.com/ironzhang/matrix/uuid"
 )
 
-const contentType = "application/json"
-
 type entry struct {
 	mu sync.RWMutex
 	m  map[string]*handler
@@ -158,7 +156,7 @@ func (m *ServeMux) checkContentType(h http.Header) error {
 }
 
 func (m *ServeMux) setError(w http.ResponseWriter, err error) {
-	status := http.StatusBadRequest
+	status := http.StatusInternalServerError
 	if te, ok := err.(HTTPStatus); ok {
 		status = te.HTTPStatus()
 	}
