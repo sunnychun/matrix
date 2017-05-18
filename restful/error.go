@@ -24,12 +24,12 @@ func NewError(status int, code codes.Code) Error {
 	return Error{Status: status, Code: code}
 }
 
-func NewCauseError(status int, code codes.Code, cause string) Error {
-	return Error{Status: status, Code: code, Cause: cause}
-}
-
 func Errorf(status int, code codes.Code, format string, a ...interface{}) Error {
-	return NewCauseError(status, code, fmt.Sprintf(format, a...))
+	return Error{
+		Status: status,
+		Code:   code,
+		Cause:  fmt.Sprintf(format, a...),
+	}
 }
 
 type Error struct {
