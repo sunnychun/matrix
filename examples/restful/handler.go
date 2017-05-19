@@ -23,7 +23,7 @@ func NewHTTPHandler() (http.Handler, error) {
 
 type handlers struct{}
 
-func (h *handlers) Root(ctx context.Context, req int, resp *string) error {
+func (h *handlers) Root(ctx context.Context, req interface{}, resp *string) error {
 	*resp = "hello, restful"
 	return nil
 }
