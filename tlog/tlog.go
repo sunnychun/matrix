@@ -74,16 +74,16 @@ func Reset() error {
 	return err
 }
 
-func Init(cfg Config) error {
+func Init(cfg Config) (*zap.Logger, error) {
 	sink, err := cfg.openSinks()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	opts := cfg.buildOptions(sink)
 	enc := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
 	core := zapcore.NewCore(enc, sink, zap.NewAtomicLevelAt(cfg.Level))
 	std = zap.New(core, opts...)
-	return nil
+	return std, nil
 }
 
 func Std() *zap.Logger {
