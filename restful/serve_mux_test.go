@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/ironzhang/matrix/codes"
+	"github.com/ironzhang/matrix/tlog"
 )
 
 func ServeHTTP(h http.Handler, method, path string, b []byte) (*httptest.ResponseRecorder, error) {
@@ -132,6 +133,8 @@ func TestArithServeMux(t *testing.T) {
 }
 
 func TestArithServeMuxReturnErr(t *testing.T) {
+	tlog.Init(tlog.Config{DisableStderr: true})
+
 	m, err := NewArithServeMux()
 	if err != nil {
 		t.Fatal(err)
@@ -212,6 +215,8 @@ func TestServeMuxReturnNil(t *testing.T) {
 }
 
 func TestServeMuxReturnErr(t *testing.T) {
+	tlog.Init(tlog.Config{DisableStderr: true})
+
 	m, err := NewTesterServeMux()
 	if err != nil {
 		t.Fatal(err)
