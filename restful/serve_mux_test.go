@@ -117,7 +117,6 @@ func TestArithServeMux(t *testing.T) {
 		{method: "Post", path: "/sub", a: 1, b: 2, c: -1},
 		{method: "post", path: "/mul", a: 1, b: 2, c: 2},
 		{method: "post", path: "/div", a: 1, b: 2, c: 0},
-		//{method: "post", path: "/div", a: 1, b: 0, c: 0},
 	}
 
 	for i, tt := range tests {
@@ -128,6 +127,131 @@ func TestArithServeMux(t *testing.T) {
 		}
 		if c != tt.c {
 			t.Errorf("tests[%d]: got(%v) != want(%v)", i, c, tt.c)
+		}
+	}
+}
+
+func TestArithServeMuxReturnErr(t *testing.T) {
+	m, err := NewArithServeMux()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = CallArith(m, "post", "/div", 1, 0)
+	if err == nil {
+		t.Fatal("CallArith, expect error buf not")
+	}
+	e := err.(Error)
+	if status := http.StatusInternalServerError; e.Status != status {
+		t.Errorf("status: %v != %v", e.Status, status)
+	}
+	if code := codes.Internal; e.Code != code {
+		t.Errorf("code: %v != %v", e.Code, code)
+	}
+	if cause := "divide by zero"; e.Cause != cause {
+		t.Errorf("cause: %q != %q", e.Cause, cause)
+	}
+}
+
+type Tester struct{}
+
+func (t Tester) ReturnNil(ctx context.Context, req interface{}, resp interface{}) error {
+	return nil
+}
+
+func (t Tester) ReturnDecodeFailError(ctx context.Context, req int, resp interface{}) error {
+	return nil
+}
+
+func (t Tester) ReturnInternalError(ctx context.Context, req interface{}, resp interface{}) error {
+	return errors.New("internal error")
+}
+
+func (t Tester) ReturnInvalidParamError(ctx context.Context, req interface{}, resp interface{}) error {
+	return NewError(http.StatusBadRequest, codes.InvalidParam)
+}
+
+func (t Tester) ReturnOutOfRangeErrorWithCause(ctx context.Context, req interface{}, resp interface{}) error {
+	return Errorf(http.StatusInternalServerError, codes.OutOfRange, "out of range")
+}
+
+func NewTesterServeMux() (m *ServeMux, err error) {
+	var t Tester
+	m = NewServeMux(nil)
+	if err = m.Add("GET", "/ReturnNil", t.ReturnNil); err != nil {
+		return nil, err
+	}
+	if err = m.Add("GET", "/ReturnDecodeFailError", t.ReturnDecodeFailError); err != nil {
+		return nil, err
+	}
+	if err = m.Add("GET", "/ReturnInternalError", t.ReturnInternalError); err != nil {
+		return nil, err
+	}
+	if err = m.Add("GET", "/ReturnInvalidParamError", t.ReturnInvalidParamError); err != nil {
+		return nil, err
+	}
+	if err = m.Add("GET", "/ReturnOutOfRangeErrorWithCause", t.ReturnOutOfRangeErrorWithCause); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func TestServeMuxReturnNil(t *testing.T) {
+	m, err := NewTesterServeMux()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r, err := ServeHTTP(m, "GET", "/ReturnNil", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status := http.StatusOK; r.Code != status {
+		t.Fatalf("status: %v != %v", r.Code, status)
+	}
+}
+
+func TestServeMuxReturnErr(t *testing.T) {
+	m, err := NewTesterServeMux()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		method string
+		path   string
+		status int
+		code   codes.Code
+		cause  string
+	}{
+		{"POST", "/add", http.StatusNotFound, codes.NotFound, "page(/add) not found"},
+		{"POST", "/ReturnNil", http.StatusMethodNotAllowed, codes.NotAllowed, "method(POST) not allowed"},
+		{"GET", "/ReturnDecodeFailError", http.StatusBadRequest, codes.DecodeFail, "EOF"},
+		{"GET", "/ReturnInternalError", http.StatusInternalServerError, codes.Internal, "internal error"},
+		{"GET", "/ReturnInvalidParamError", http.StatusBadRequest, codes.InvalidParam, ""},
+		{"GET", "/ReturnOutOfRangeErrorWithCause", http.StatusInternalServerError, codes.OutOfRange, "out of range"},
+	}
+	for i, tt := range tests {
+		r, err := ServeHTTP(m, tt.method, tt.path, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var e rpcError
+		if err = json.Unmarshal(r.Body.Bytes(), &e); err != nil {
+			t.Fatal(err)
+		}
+
+		if got, want := r.Code, tt.status; got != want {
+			t.Errorf("tests[%d]: http status: %v != %v", i, got, want)
+		}
+		if got, want := e.Code, int(tt.code); got != want {
+			t.Errorf("tests[%d]: error code: %v != %v", i, got, want)
+		}
+		if got, want := e.Desc, tt.code.String(); got != want {
+			t.Errorf("tests[%d]: error desc: %q != %q", i, got, want)
+		}
+		if got, want := e.Cause, tt.cause; got != want {
+			t.Errorf("tests[%d]: error cause: %q != %q", i, got, want)
 		}
 	}
 }
