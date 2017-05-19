@@ -3,12 +3,16 @@ package restful
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
+	"net/http/httputil"
+	"os"
 	"strings"
 	"sync"
 
 	"github.com/ironzhang/matrix/codes"
 	"github.com/ironzhang/matrix/context-value"
+	"github.com/ironzhang/matrix/httputils"
 	"github.com/ironzhang/matrix/tlog"
 	"github.com/ironzhang/matrix/uuid"
 )
@@ -45,10 +49,23 @@ func NewServeMux(codec Codec) *ServeMux {
 }
 
 type ServeMux struct {
+	w       io.Writer
 	verbose int
 	codec   Codec
 	mu      sync.RWMutex
 	entrys  map[string]*entry
+}
+
+// SetVerbose 设置verbose级别
+//  verbose = 0, 不打印HTTP协议
+//  verbose = 1, 根据请求头部中是否含有X-Verbose来决定是否打印HTTP协议，默认级别
+//  verbose = 2, 打印HTTP协议
+func (m *ServeMux) SetVerbose(verbose int) {
+	m.verbose = verbose
+}
+
+func (m *ServeMux) SetWriter(w io.Writer) {
+	m.w = w
 }
 
 func (m *ServeMux) Delete(pat string, h interface{}) error {
@@ -90,6 +107,17 @@ func (m *ServeMux) Add(meth, pat string, i interface{}) error {
 
 func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := context_value.WithTraceId(context.Background(), getTraceId(r.Header))
+
+	// print verbose proto
+	if verbose(m.verbose, r.Header) {
+		printRequest(ctx, m.writer(), r)
+		d := httputils.NewResponseDumper(w, r)
+		defer printResponse(ctx, m.writer(), d)
+
+		w = d
+	}
+
+	// serve http
 	if err := m.serveHTTP(ctx, w, r); err != nil {
 		m.setError(w, err)
 	}
@@ -183,9 +211,44 @@ func (m *ServeMux) getEntry(pat string) (*entry, bool) {
 	return e, ok
 }
 
+func (m *ServeMux) writer() io.Writer {
+	if m.w == nil {
+		return os.Stdout
+	}
+	return m.w
+}
+
 func getTraceId(h http.Header) string {
-	if v := h.Get("X-Trace-Id"); v != "" {
+	if v := h.Get(xTraceId); v != "" {
 		return v
 	}
 	return uuid.New().String()
+}
+
+func verbose(verbose int, h http.Header) bool {
+	switch verbose {
+	case 0:
+		return false
+	case 1:
+		return h.Get(xVerbose) != ""
+	case 2:
+		return true
+	}
+	return false
+}
+
+func printRequest(ctx context.Context, w io.Writer, r *http.Request) {
+	b, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		tlog.WithContext(ctx).Sugar().Errorw("dump request", "error", err)
+		return
+	}
+	traceId := context_value.ParseTraceId(ctx)
+	fmt.Fprintf(w, "traceId(%s) request:\n%s\n", traceId, b)
+}
+
+func printResponse(ctx context.Context, w io.Writer, r *httputils.ResponseDumper) {
+	b := r.Dump(true)
+	traceId := context_value.ParseTraceId(ctx)
+	fmt.Fprintf(w, "traceId(%s) response:\n%s\n", traceId, b)
 }
