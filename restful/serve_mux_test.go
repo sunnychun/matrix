@@ -3,7 +3,6 @@ package restful
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -18,7 +17,7 @@ func ServeHTTP(h http.Handler, method, path string, b []byte) (*httptest.Respons
 	if err != nil {
 		return nil, err
 	}
-	r.Header.Set("Content-Type", "application/json")
+	//r.Header.Set("Content-Type", "application/json")
 	//r.Header.Set("X-Verbose", "1")
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
@@ -76,27 +75,28 @@ func NewArithServeMux() (m *ServeMux, err error) {
 	return m, nil
 }
 
-func CallArith(h http.Handler, method, path string, a, b int) (c int, err error) {
+func CallArith(m *ServeMux, method, path string, a, b int) (c int, err error) {
 	args := Args{a, b}
-	buf, err := json.Marshal(args)
-	if err != nil {
+
+	var buf bytes.Buffer
+	if err = m.codec.Encode(&buf, args); err != nil {
 		return 0, err
 	}
 
-	r, err := ServeHTTP(h, method, path, buf)
+	r, err := ServeHTTP(m, method, path, buf.Bytes())
 	if err != nil {
 		return 0, err
 	}
 	if r.Code != http.StatusOK {
 		var e rpcError
-		if err = json.Unmarshal(r.Body.Bytes(), &e); err != nil {
+		if err = m.codec.Decode(r.Body, &e); err != nil {
 			return 0, err
 		}
 		return 0, Errorf(r.Code, codes.Code(e.Code), e.Cause)
 	}
 
 	var reply Reply
-	if err = json.Unmarshal(r.Body.Bytes(), &reply); err != nil {
+	if err = m.codec.Decode(r.Body, &reply); err != nil {
 		return 0, err
 	}
 	return reply.C, nil
@@ -243,7 +243,7 @@ func TestServeMuxReturnErr(t *testing.T) {
 			t.Fatal(err)
 		}
 		var e rpcError
-		if err = json.Unmarshal(r.Body.Bytes(), &e); err != nil {
+		if m.codec.Decode(r.Body, &e); err != nil {
 			t.Fatal(err)
 		}
 

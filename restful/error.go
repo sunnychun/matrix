@@ -59,7 +59,7 @@ func (e Error) Error() string {
 type rpcError struct {
 	Code  int    `json:"code"`
 	Desc  string `json:"desc"`
-	Cause string `json:"cause,omitempty"`
+	Cause string `json:"cause,omitempty" xml:",omitempty"`
 }
 
 func (e rpcError) Error() string {

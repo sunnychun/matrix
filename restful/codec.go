@@ -2,6 +2,7 @@ package restful
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"io"
 )
 
@@ -26,3 +27,17 @@ func (c JSONCodec) Decode(r io.Reader, v interface{}) error {
 }
 
 var _ Codec = JSONCodec{}
+
+type XMLCodec struct{}
+
+func (c XMLCodec) ContentType() string {
+	return "application/xml"
+}
+
+func (c XMLCodec) Encode(w io.Writer, v interface{}) error {
+	return xml.NewEncoder(w).Encode(v)
+}
+
+func (c XMLCodec) Decode(r io.Reader, v interface{}) error {
+	return xml.NewDecoder(r).Decode(v)
+}
