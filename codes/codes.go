@@ -23,15 +23,21 @@ const (
 )
 
 var codes = map[Code]string{
-	OK:            "ok",
-	Internal:      "internal",
-	Unknown:       "unknown",
-	Aborted:       "aborted",
-	NotFound:      "not found",
-	NotAllowed:    "not allowed",
+	OK: "ok",
+
+	Internal: "internal",
+	Unknown:  "unknown",
+	Aborted:  "aborted",
+
+	NotFound:   "not found",
+	NotAllowed: "not allowed",
+
 	InvalidHeader: "invalid header",
 	InvalidParam:  "invalid param",
-	OutOfRange:    "out of range",
+
+	OutOfRange: "out of range",
+	EncodeFail: "encode fail",
+	DecodeFail: "decode fail",
 }
 
 func Register(code Code, desc string) {
