@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ironzhang/matrix/codes"
+	"github.com/ironzhang/matrix/restful/codec"
 	"github.com/ironzhang/matrix/tlog"
 )
 
@@ -88,8 +89,8 @@ func CallArith(m *ServeMux, method, path string, a, b int) (c int, err error) {
 		return 0, err
 	}
 	if r.Code != http.StatusOK {
-		var e rpcError
-		if err = m.codec.Decode(r.Body, &e); err != nil {
+		var e codec.Error
+		if err = m.codec.DecodeError(r.Body, &e); err != nil {
 			return 0, err
 		}
 		return 0, Errorf(r.Code, codes.Code(e.Code), e.Cause)
@@ -242,8 +243,8 @@ func TestServeMuxReturnErr(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var e rpcError
-		if m.codec.Decode(r.Body, &e); err != nil {
+		var e codec.Error
+		if m.codec.DecodeError(r.Body, &e); err != nil {
 			t.Fatal(err)
 		}
 

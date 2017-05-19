@@ -11,14 +11,6 @@ type HTTPStatus interface {
 	HTTPStatus() int
 }
 
-type ErrorCode interface {
-	ErrorCode() codes.Code
-}
-
-type ErrorCause interface {
-	ErrorCause() string
-}
-
 func NewError(status int, code codes.Code) Error {
 	return Error{Status: status, Code: code}
 }
@@ -54,36 +46,4 @@ func (e Error) Error() string {
 		return fmt.Sprintf("[%d: %s] %d: %s (%s)", e.Status, http.StatusText(e.Status), e.Code, e.Code.String(), e.Cause)
 	}
 	return fmt.Sprintf("[%d: %s] %d: %s", e.Status, http.StatusText(e.Status), e.Code, e.Code.String())
-}
-
-type rpcError struct {
-	Code  int    `json:"code"`
-	Desc  string `json:"desc"`
-	Cause string `json:"cause,omitempty" xml:",omitempty"`
-}
-
-func (e rpcError) Error() string {
-	if e.Cause != "" {
-		return fmt.Sprintf("%d: %s (%s)", e.Code, e.Desc, e.Cause)
-	}
-	return fmt.Sprintf("%d: %s", e.Code, e.Desc)
-}
-
-func toRPCError(err error) error {
-	if e, ok := err.(rpcError); ok {
-		return e
-	}
-	code := codes.Internal
-	if e, ok := err.(ErrorCode); ok {
-		code = e.ErrorCode()
-	}
-	cause := err.Error()
-	if e, ok := err.(ErrorCause); ok {
-		cause = e.ErrorCause()
-	}
-	return rpcError{
-		Code:  int(code),
-		Desc:  code.String(),
-		Cause: cause,
-	}
 }

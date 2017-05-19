@@ -1,4 +1,4 @@
-package restful
+package codec
 
 import (
 	"encoding/json"
@@ -10,7 +10,11 @@ type Codec interface {
 	ContentType() string
 	Encode(io.Writer, interface{}) error
 	Decode(io.Reader, interface{}) error
+	EncodeError(io.Writer, Error) error
+	DecodeError(io.Reader, *Error) error
 }
+
+var _ Codec = JSONCodec{}
 
 type JSONCodec struct{}
 
@@ -26,7 +30,15 @@ func (c JSONCodec) Decode(r io.Reader, v interface{}) error {
 	return json.NewDecoder(r).Decode(v)
 }
 
-var _ Codec = JSONCodec{}
+func (c JSONCodec) EncodeError(w io.Writer, e Error) error {
+	return json.NewEncoder(w).Encode(e)
+}
+
+func (c JSONCodec) DecodeError(r io.Reader, e *Error) error {
+	return json.NewDecoder(r).Decode(e)
+}
+
+var _ Codec = XMLCodec{}
 
 type XMLCodec struct{}
 
@@ -40,4 +52,12 @@ func (c XMLCodec) Encode(w io.Writer, v interface{}) error {
 
 func (c XMLCodec) Decode(r io.Reader, v interface{}) error {
 	return xml.NewDecoder(r).Decode(v)
+}
+
+func (c XMLCodec) EncodeError(w io.Writer, e Error) error {
+	return xml.NewEncoder(w).Encode(e)
+}
+
+func (c XMLCodec) DecodeError(r io.Reader, e *Error) error {
+	return xml.NewDecoder(r).Decode(e)
 }

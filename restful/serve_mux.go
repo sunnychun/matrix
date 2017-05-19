@@ -13,6 +13,7 @@ import (
 	"github.com/ironzhang/matrix/codes"
 	"github.com/ironzhang/matrix/context-value"
 	"github.com/ironzhang/matrix/httputils"
+	"github.com/ironzhang/matrix/restful/codec"
 	"github.com/ironzhang/matrix/tlog"
 	"github.com/ironzhang/matrix/uuid"
 )
@@ -37,13 +38,13 @@ func (e *entry) GetHandler(meth string) (*handler, bool) {
 	return h, ok
 }
 
-func NewServeMux(codec Codec) *ServeMux {
-	if codec == nil {
-		codec = JSONCodec{}
+func NewServeMux(c codec.Codec) *ServeMux {
+	if c == nil {
+		c = codec.JSONCodec{}
 	}
 	return &ServeMux{
 		verbose: 1,
-		codec:   codec,
+		codec:   c,
 		entrys:  make(map[string]*entry),
 	}
 }
@@ -51,7 +52,7 @@ func NewServeMux(codec Codec) *ServeMux {
 type ServeMux struct {
 	w       io.Writer
 	verbose int
-	codec   Codec
+	codec   codec.Codec
 	mu      sync.RWMutex
 	entrys  map[string]*entry
 }
@@ -188,9 +189,9 @@ func (m *ServeMux) setError(w http.ResponseWriter, err error) {
 	if te, ok := err.(HTTPStatus); ok {
 		status = te.HTTPStatus()
 	}
-	e := toRPCError(err)
+	e := codec.ToError(err)
 	w.WriteHeader(status)
-	m.codec.Encode(w, e)
+	m.codec.EncodeError(w, e)
 }
 
 func (m *ServeMux) addEntry(pat string) *entry {
