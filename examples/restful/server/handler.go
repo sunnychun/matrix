@@ -11,7 +11,7 @@ func NewHTTPHandler() (http.Handler, error) {
 	var err error
 	var h handlers
 	m := restful.NewServeMux(nil)
-	m.SetVerbose(2)
+	//m.SetVerbose(2)
 	if err = m.Get("/", h.Root); err != nil {
 		return nil, err
 	}
