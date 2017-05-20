@@ -25,6 +25,67 @@ type Client struct {
 	Client  HTTPClient
 	Codec   codec.Codec
 	Writer  io.Writer
+	Context context.Context
+}
+
+func (c *Client) Delete(url string, args, reply interface{}) error {
+	return c.Do("DELETE", url, args, reply)
+}
+
+func (c *Client) Get(url string, args, reply interface{}) error {
+	return c.Do("GET", url, args, reply)
+}
+
+func (c *Client) Head(ctx context.Context, url string, args, reply interface{}) error {
+	return c.Do("HEAD", url, args, reply)
+}
+
+func (c *Client) Options(ctx context.Context, url string, args, reply interface{}) error {
+	return c.Do("OPTIONS", url, args, reply)
+}
+
+func (c *Client) Patch(url string, args, reply interface{}) error {
+	return c.Do("PATCH", url, args, reply)
+}
+
+func (c *Client) Post(url string, args, reply interface{}) error {
+	return c.Do("POST", url, args, reply)
+}
+
+func (c *Client) Put(url string, args, reply interface{}) error {
+	return c.Do("PUT", url, args, reply)
+}
+
+func (c *Client) Do(method, url string, args, reply interface{}) error {
+	return c.DoContext(c.context(), method, url, args, reply)
+}
+
+func (c *Client) DeleteContext(ctx context.Context, url string, args, reply interface{}) error {
+	return c.DoContext(ctx, "DELETE", url, args, reply)
+}
+
+func (c *Client) GetContext(ctx context.Context, url string, args, reply interface{}) error {
+	return c.DoContext(ctx, "GET", url, args, reply)
+}
+
+func (c *Client) HeadContext(ctx context.Context, url string, args, reply interface{}) error {
+	return c.DoContext(ctx, "HEAD", url, args, reply)
+}
+
+func (c *Client) OptionsContext(ctx context.Context, url string, args, reply interface{}) error {
+	return c.DoContext(ctx, "OPTIONS", url, args, reply)
+}
+
+func (c *Client) PatchContext(ctx context.Context, url string, args, reply interface{}) error {
+	return c.DoContext(ctx, "PATCH", url, args, reply)
+}
+
+func (c *Client) PostContext(ctx context.Context, url string, args, reply interface{}) error {
+	return c.DoContext(ctx, "POST", url, args, reply)
+}
+
+func (c *Client) PutContext(ctx context.Context, url string, args, reply interface{}) error {
+	return c.DoContext(ctx, "PUT", url, args, reply)
 }
 
 func (c *Client) DoContext(ctx context.Context, method, url string, args, reply interface{}) (err error) {
@@ -118,6 +179,13 @@ func (c *Client) writer() io.Writer {
 		return os.Stdout
 	}
 	return c.Writer
+}
+
+func (c *Client) context() context.Context {
+	if c.Context == nil {
+		return context.Background()
+	}
+	return c.Context
 }
 
 func (c *Client) printRequest(ctx context.Context, r *http.Request) {
