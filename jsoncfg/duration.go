@@ -12,7 +12,7 @@ func (d Duration) String() string {
 	return time.Duration(d).String()
 }
 
-func (d *Duration) MarshalJSON() ([]byte, error) {
+func (d Duration) MarshalJSON() ([]byte, error) {
 	s := fmt.Sprintf("%q", d)
 	return []byte(s), nil
 }
