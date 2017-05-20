@@ -21,15 +21,15 @@ type HTTPClient interface {
 }
 
 type Client struct {
-	Client HTTPClient
-	Codec  codec.Codec
-	Writer io.Writer
+	Verbose int
+	Client  HTTPClient
+	Codec   codec.Codec
+	Writer  io.Writer
 }
 
 func (c *Client) DoContext(ctx context.Context, method, url string, args, reply interface{}) (err error) {
 	ctx = contextWithTraceId(ctx)
 	log := tlog.WithContext(ctx).Sugar().With("method", method, "url", url)
-	verbose := context_value.ParseVerbose(ctx)
 
 	var b bytes.Buffer
 
@@ -50,6 +50,7 @@ func (c *Client) DoContext(ctx context.Context, method, url string, args, reply 
 	c.setHeader(ctx, req.Header)
 
 	// Print request
+	verbose := c.getVerbose(ctx)
 	if verbose {
 		c.printRequest(ctx, req)
 	}
@@ -137,6 +138,18 @@ func (c *Client) printResponse(ctx context.Context, r *http.Response) {
 	}
 	traceId := context_value.ParseTraceId(ctx)
 	fmt.Fprintf(c.writer(), "traceId(%s) client response:\n%s\n", traceId, b)
+}
+
+func (c *Client) getVerbose(ctx context.Context) bool {
+	switch c.Verbose {
+	case 0:
+		return false
+	case 1:
+		return context_value.ParseVerbose(ctx)
+	case 2:
+		return true
+	}
+	return false
 }
 
 func contextWithTraceId(ctx context.Context) context.Context {

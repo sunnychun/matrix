@@ -110,7 +110,7 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := context_value.WithTraceId(context.Background(), getTraceId(r.Header))
 
 	// print verbose proto
-	if verbose(m.verbose, r.Header) {
+	if m.getVerbose(r.Header) {
 		m.printRequest(ctx, r)
 		d := httputils.NewResponseDumper(w, r)
 		defer m.printResponse(ctx, d)
@@ -236,15 +236,8 @@ func (m *ServeMux) printResponse(ctx context.Context, r *httputils.ResponseDumpe
 	fmt.Fprintf(m.writer(), "traceId(%s) server response:\n%s\n", traceId, b)
 }
 
-func getTraceId(h http.Header) string {
-	if v := h.Get(xTraceId); v != "" {
-		return v
-	}
-	return uuid.New().String()
-}
-
-func verbose(verbose int, h http.Header) bool {
-	switch verbose {
+func (m *ServeMux) getVerbose(h http.Header) bool {
+	switch m.verbose {
 	case 0:
 		return false
 	case 1:
@@ -256,4 +249,11 @@ func verbose(verbose int, h http.Header) bool {
 		return true
 	}
 	return false
+}
+
+func getTraceId(h http.Header) string {
+	if v := h.Get(xTraceId); v != "" {
+		return v
+	}
+	return uuid.New().String()
 }

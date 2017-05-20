@@ -22,6 +22,7 @@ func TestClientDoContext(t *testing.T) {
 	var c Client
 	var args Args
 	var reply Reply
+	c.Verbose = 1
 	ctx := context_value.WithVerbose(context.Background(), false)
 
 	tests := []struct {
@@ -60,6 +61,7 @@ func TestClientDoContextReturnErr(t *testing.T) {
 	s := httptest.NewServer(m)
 
 	var c Client
+	c.Verbose = 1
 	ctx := context_value.WithVerbose(context.Background(), false)
 
 	tests := []struct {
