@@ -13,6 +13,7 @@ import (
 	"github.com/ironzhang/matrix/context-value"
 	"github.com/ironzhang/matrix/restful/codec"
 	"github.com/ironzhang/matrix/tlog"
+	"github.com/ironzhang/matrix/uuid"
 )
 
 type HTTPClient interface {
@@ -26,6 +27,7 @@ type Client struct {
 }
 
 func (c *Client) DoContext(ctx context.Context, method, url string, args, reply interface{}) (err error) {
+	ctx = contextWithTraceId(ctx)
 	log := tlog.WithContext(ctx).Sugar().With("method", method, "url", url)
 	verbose := context_value.ParseVerbose(ctx)
 
@@ -45,7 +47,7 @@ func (c *Client) DoContext(ctx context.Context, method, url string, args, reply 
 		log.Errorw("new request", "error", err)
 		return err
 	}
-	setHeaderWithContext(ctx, req.Header)
+	c.setHeader(ctx, req.Header)
 
 	// Print request
 	if verbose {
@@ -84,6 +86,16 @@ func (c *Client) DoContext(ctx context.Context, method, url string, args, reply 
 	}
 
 	return nil
+}
+
+func (c *Client) setHeader(ctx context.Context, h http.Header) {
+	h.Set("Content-Type", c.codec().ContentType())
+	if v := context_value.ParseTraceId(ctx); v != "" {
+		h.Set(xTraceId, v)
+	}
+	if v := context_value.ParseVerbose(ctx); v {
+		h.Set(xVerbose, "1")
+	}
 }
 
 func (c *Client) client() HTTPClient {
@@ -127,11 +139,9 @@ func (c *Client) printResponse(ctx context.Context, r *http.Response) {
 	fmt.Fprintf(c.writer(), "traceId(%s) client response:\n%s\n", traceId, b)
 }
 
-func setHeaderWithContext(ctx context.Context, h http.Header) {
-	if v := context_value.ParseTraceId(ctx); v != "" {
-		h.Set(xTraceId, v)
+func contextWithTraceId(ctx context.Context) context.Context {
+	if v := context_value.ParseTraceId(ctx); v == "" {
+		return context_value.WithTraceId(ctx, uuid.New().String())
 	}
-	if v := context_value.ParseVerbose(ctx); v {
-		h.Set(xVerbose, "1")
-	}
+	return ctx
 }

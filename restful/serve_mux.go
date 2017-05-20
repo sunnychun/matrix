@@ -190,6 +190,7 @@ func (m *ServeMux) setError(w http.ResponseWriter, err error) {
 		status = te.HTTPStatus()
 	}
 	e := codec.ToError(err)
+	w.Header().Set("Content-Type", m.codec.ContentType())
 	w.WriteHeader(status)
 	m.codec.EncodeError(w, e)
 }

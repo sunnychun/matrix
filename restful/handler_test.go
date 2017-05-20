@@ -234,7 +234,7 @@ func TestHandler(t *testing.T) {
 		t.Fatalf("handle: %v", err)
 	}
 	if calls != 1 {
-		t.Errorf("calls != 1", calls)
+		t.Errorf("calls(%d) != 1", calls)
 	}
 	if resp.C != req.A+req.B {
 		t.Errorf("C(%d) != A(%d) + B(%d)", resp.C, req.A, req.B)
