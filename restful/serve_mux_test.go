@@ -19,7 +19,7 @@ func ServeHTTP(h http.Handler, method, path string, b []byte) (*httptest.Respons
 		return nil, err
 	}
 	//r.Header.Set("Content-Type", "application/json")
-	//r.Header.Set("X-Verbose", "1")
+	r.Header.Set(xVerbose, "0")
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	return w, nil
@@ -231,7 +231,7 @@ func TestServeMuxReturnErr(t *testing.T) {
 		code   codes.Code
 		cause  string
 	}{
-		{"POST", "/add", http.StatusNotFound, codes.NotFound, "page(/add) not found"},
+		{"POST", "/NotFound", http.StatusNotFound, codes.NotFound, "page(/NotFound) not found"},
 		{"POST", "/ReturnNil", http.StatusMethodNotAllowed, codes.NotAllowed, "method(POST) not allowed"},
 		{"GET", "/ReturnDecodeFailError", http.StatusBadRequest, codes.DecodeFail, "EOF"},
 		{"GET", "/ReturnInternalError", http.StatusInternalServerError, codes.Internal, "internal error"},

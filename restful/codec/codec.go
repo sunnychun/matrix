@@ -14,6 +14,8 @@ type Codec interface {
 	DecodeError(io.Reader, *Error) error
 }
 
+var DefaultCodec JSONCodec
+
 var _ Codec = JSONCodec{}
 
 type JSONCodec struct{}

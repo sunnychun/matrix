@@ -40,7 +40,7 @@ func (e *entry) GetHandler(meth string) (*handler, bool) {
 
 func NewServeMux(c codec.Codec) *ServeMux {
 	if c == nil {
-		c = codec.JSONCodec{}
+		c = codec.DefaultCodec
 	}
 	return &ServeMux{
 		verbose: 1,
@@ -111,9 +111,9 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// print verbose proto
 	if verbose(m.verbose, r.Header) {
-		printRequest(ctx, m.writer(), r)
+		m.printRequest(ctx, r)
 		d := httputils.NewResponseDumper(w, r)
-		defer printResponse(ctx, m.writer(), d)
+		defer m.printResponse(ctx, d)
 
 		w = d
 	}
@@ -125,26 +125,26 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *ServeMux) serveHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	log := tlog.WithContext(ctx).Sugar()
+	log := tlog.WithContext(ctx).Sugar().With("method", r.Method, "path", r.URL.Path)
 	e, ok := m.getEntry(r.URL.Path)
 	if !ok {
-		log.Infow(http.StatusText(http.StatusNotFound), "method", r.Method, "path", r.URL.Path)
+		log.Info(http.StatusText(http.StatusNotFound))
 		return Errorf(http.StatusNotFound, codes.NotFound, "page(%s) not found", r.URL.Path)
 	}
 	h, ok := e.GetHandler(r.Method)
 	if !ok {
-		log.Infow(http.StatusText(http.StatusMethodNotAllowed), "method", r.Method, "path", r.URL.Path)
+		log.Info(http.StatusText(http.StatusMethodNotAllowed))
 		return Errorf(http.StatusMethodNotAllowed, codes.NotAllowed, "method(%s) not allowed", r.Method)
 	}
 	return m.serve(ctx, h, w, r)
 }
 
 func (m *ServeMux) serve(ctx context.Context, h *handler, w http.ResponseWriter, r *http.Request) (err error) {
-	log := tlog.WithContext(ctx).Sugar()
+	log := tlog.WithContext(ctx).Sugar().With("method", r.Method, "path", r.URL.Path)
 
 	// check Content-Type
 	if err = m.checkContentType(r.Header); err != nil {
-		log.Infow("check content type fail", "error", err, "method", r.Method, "path", r.URL.Path)
+		log.Infow("check content type", "error", err)
 		return Errorf(http.StatusBadRequest, codes.InvalidHeader, err.Error())
 	}
 
@@ -154,14 +154,14 @@ func (m *ServeMux) serve(ctx context.Context, h *handler, w http.ResponseWriter,
 	// Decode
 	if !isNilInterface(h.in1Type) {
 		if err = m.codec.Decode(r.Body, in1.Interface()); err != nil {
-			log.Infow("decode fail", "error", err, "method", r.Method, "path", r.URL.Path)
+			log.Infow("decode", "error", err)
 			return Errorf(http.StatusBadRequest, codes.DecodeFail, err.Error())
 		}
 	}
 
 	// Handle
 	if err = h.Handle(ctx, in1, in2); err != nil {
-		log.Infow("handle fail", "error", err, "method", r.Method, "path", r.URL.Path)
+		log.Infow("handle", "error", err)
 		return err
 	}
 
@@ -169,7 +169,7 @@ func (m *ServeMux) serve(ctx context.Context, h *handler, w http.ResponseWriter,
 	if !isNilInterface(h.in2Type) {
 		w.Header().Set("Content-Type", m.codec.ContentType())
 		if err = m.codec.Encode(w, in2.Interface()); err != nil {
-			log.Errorw("encode fail", "error", err, "method", r.Method, "path", r.URL.Path)
+			log.Errorw("encode", "error", err)
 			return Errorf(http.StatusInternalServerError, codes.EncodeFail, err.Error())
 		}
 	}
@@ -219,6 +219,22 @@ func (m *ServeMux) writer() io.Writer {
 	return m.w
 }
 
+func (m *ServeMux) printRequest(ctx context.Context, r *http.Request) {
+	b, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		tlog.WithContext(ctx).Sugar().Errorw("dump request", "error", err)
+		return
+	}
+	traceId := context_value.ParseTraceId(ctx)
+	fmt.Fprintf(m.writer(), "traceId(%s) server request:\n%s\n", traceId, b)
+}
+
+func (m *ServeMux) printResponse(ctx context.Context, r *httputils.ResponseDumper) {
+	b := r.Dump(true)
+	traceId := context_value.ParseTraceId(ctx)
+	fmt.Fprintf(m.writer(), "traceId(%s) server response:\n%s\n", traceId, b)
+}
+
 func getTraceId(h http.Header) string {
 	if v := h.Get(xTraceId); v != "" {
 		return v
@@ -231,25 +247,12 @@ func verbose(verbose int, h http.Header) bool {
 	case 0:
 		return false
 	case 1:
-		return h.Get(xVerbose) != ""
+		if v := h.Get(xVerbose); v == "1" || strings.ToLower(v) == "true" {
+			return true
+		}
+		return false
 	case 2:
 		return true
 	}
 	return false
-}
-
-func printRequest(ctx context.Context, w io.Writer, r *http.Request) {
-	b, err := httputil.DumpRequest(r, true)
-	if err != nil {
-		tlog.WithContext(ctx).Sugar().Errorw("dump request", "error", err)
-		return
-	}
-	traceId := context_value.ParseTraceId(ctx)
-	fmt.Fprintf(w, "traceId(%s) request:\n%s\n", traceId, b)
-}
-
-func printResponse(ctx context.Context, w io.Writer, r *httputils.ResponseDumper) {
-	b := r.Dump(true)
-	traceId := context_value.ParseTraceId(ctx)
-	fmt.Fprintf(w, "traceId(%s) response:\n%s\n", traceId, b)
 }
