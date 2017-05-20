@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"time"
 
 	"github.com/ironzhang/matrix/codes"
 	"github.com/ironzhang/matrix/context-value"
@@ -15,6 +16,14 @@ import (
 	"github.com/ironzhang/matrix/tlog"
 	"github.com/ironzhang/matrix/uuid"
 )
+
+var DefaultClient = &Client{
+	Verbose: 1,
+	Client: &http.Client{
+		Transport: http.DefaultTransport,
+		Timeout:   20 * time.Second,
+	},
+}
 
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
