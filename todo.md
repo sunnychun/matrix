@@ -3,8 +3,6 @@
 ## module
 
 * errs
-* jsoncfg
-* restful
 * registry
 * framework
 
