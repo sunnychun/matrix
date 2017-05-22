@@ -31,7 +31,7 @@ func ToError(err error) Error {
 	if e, ok := err.(Error); ok {
 		return e
 	}
-	code := codes.Internal
+	code := codes.Unknown
 	if e, ok := err.(ErrorCode); ok {
 		code = e.ErrorCode()
 	}

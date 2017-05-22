@@ -7,9 +7,8 @@ type Code int
 const (
 	OK Code = 0
 
-	Internal Code = -1
-	Unknown  Code = -2
-	Aborted  Code = -3
+	Unknown  Code = -1
+	Internal Code = -2
 
 	NotFound   Code = -101
 	NotAllowed Code = -102
@@ -25,9 +24,8 @@ const (
 var codes = map[Code]string{
 	OK: "ok",
 
-	Internal: "internal",
 	Unknown:  "unknown",
-	Aborted:  "aborted",
+	Internal: "internal",
 
 	NotFound:   "not found",
 	NotAllowed: "not allowed",

@@ -79,6 +79,7 @@ func TestClientDoContextReturnErr(t *testing.T) {
 		{"POST", "/NotFound", http.StatusNotFound, codes.NotFound, "page(/NotFound) not found"},
 		{"POST", "/ReturnNil", http.StatusMethodNotAllowed, codes.NotAllowed, "method(POST) not allowed"},
 		{"GET", "/ReturnDecodeFailError", http.StatusBadRequest, codes.DecodeFail, "EOF"},
+		{"GET", "/ReturnUnknownError", http.StatusInternalServerError, codes.Unknown, "unknown"},
 		{"GET", "/ReturnInternalError", http.StatusInternalServerError, codes.Internal, "internal error"},
 		{"GET", "/ReturnInvalidParamError", http.StatusBadRequest, codes.InvalidParam, ""},
 		{"GET", "/ReturnOutOfRangeErrorWithCause", http.StatusInternalServerError, codes.OutOfRange, "out of range"},

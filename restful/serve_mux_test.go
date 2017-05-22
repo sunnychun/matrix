@@ -153,7 +153,7 @@ func TestArithServeMuxReturnErr(t *testing.T) {
 	if status := http.StatusInternalServerError; e.Status != status {
 		t.Errorf("status: %v != %v", e.Status, status)
 	}
-	if code := codes.Internal; e.Code != code {
+	if code := codes.Unknown; e.Code != code {
 		t.Errorf("code: %v != %v", e.Code, code)
 	}
 	if cause := "divide by zero"; e.Cause != cause {
@@ -171,8 +171,12 @@ func (t Tester) ReturnDecodeFailError(ctx context.Context, req int, resp interfa
 	return nil
 }
 
+func (t Tester) ReturnUnknownError(ctx context.Context, req interface{}, resp interface{}) error {
+	return errors.New("unknown")
+}
+
 func (t Tester) ReturnInternalError(ctx context.Context, req interface{}, resp interface{}) error {
-	return errors.New("internal error")
+	return Errorf(http.StatusInternalServerError, codes.Internal, "internal error")
 }
 
 func (t Tester) ReturnInvalidParamError(ctx context.Context, req interface{}, resp interface{}) error {
@@ -190,6 +194,9 @@ func NewTesterServeMux() (m *ServeMux, err error) {
 		return nil, err
 	}
 	if err = m.Add("GET", "/ReturnDecodeFailError", t.ReturnDecodeFailError); err != nil {
+		return nil, err
+	}
+	if err = m.Add("GET", "/ReturnUnknownError", t.ReturnUnknownError); err != nil {
 		return nil, err
 	}
 	if err = m.Add("GET", "/ReturnInternalError", t.ReturnInternalError); err != nil {
@@ -239,6 +246,7 @@ func TestServeMuxReturnErr(t *testing.T) {
 		{"POST", "/NotFound", http.StatusNotFound, codes.NotFound, "page(/NotFound) not found"},
 		{"POST", "/ReturnNil", http.StatusMethodNotAllowed, codes.NotAllowed, "method(POST) not allowed"},
 		{"GET", "/ReturnDecodeFailError", http.StatusBadRequest, codes.DecodeFail, "EOF"},
+		{"GET", "/ReturnUnknownError", http.StatusInternalServerError, codes.Unknown, "unknown"},
 		{"GET", "/ReturnInternalError", http.StatusInternalServerError, codes.Internal, "internal error"},
 		{"GET", "/ReturnInvalidParamError", http.StatusBadRequest, codes.InvalidParam, ""},
 		{"GET", "/ReturnOutOfRangeErrorWithCause", http.StatusInternalServerError, codes.OutOfRange, "out of range"},
