@@ -2,9 +2,12 @@ package restful
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/ironzhang/matrix/codes"
 	"github.com/ironzhang/matrix/context-value"
@@ -12,6 +15,8 @@ import (
 )
 
 func TestClientDoContext(t *testing.T) {
+	tlog.Reset()
+
 	m, err := NewArithServeMux()
 	if err != nil {
 		t.Fatal(err)
@@ -100,4 +105,64 @@ func TestClientDoContextReturnErr(t *testing.T) {
 			t.Errorf("tests[%d]: error cause: %q != %q", i, got, want)
 		}
 	}
+}
+
+func BenchmarkClientSerial(b *testing.B) {
+	tlog.Reset()
+
+	m, err := NewArithServeMux()
+	if err != nil {
+		b.Fatal(err)
+	}
+	s := httptest.NewServer(m)
+
+	var c Client
+	var args Args
+	var reply Reply
+	for i := 0; i < b.N; i++ {
+		if err = c.Post(s.URL+"/add", args, &reply); err != nil {
+			b.Error(err)
+		}
+	}
+}
+
+func BenchmarkClientParallel(b *testing.B) {
+	tlog.Reset()
+
+	m, err := NewArithServeMux()
+	if err != nil {
+		b.Fatal(err)
+	}
+	s := httptest.NewServer(m)
+
+	c := Client{
+		Client: &http.Client{
+			Transport: &http.Transport{
+				DialContext: (&net.Dialer{
+					Timeout:   30 * time.Second,
+					KeepAlive: 30 * time.Second,
+					DualStack: true,
+				}).DialContext,
+				MaxIdleConns:          10000,
+				MaxIdleConnsPerHost:   10000,
+				IdleConnTimeout:       90 * time.Second,
+				TLSHandshakeTimeout:   10 * time.Second,
+				ExpectContinueTimeout: 1 * time.Second,
+			},
+		},
+	}
+	var args Args
+	var reply Reply
+	var wg sync.WaitGroup
+
+	wg.Add(b.N)
+	for i := 0; i < b.N; i++ {
+		go func() {
+			if err := c.Post(s.URL+"/add", args, &reply); err != nil {
+				b.Error(err)
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
 }
