@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 
 	"github.com/ironzhang/matrix/codes"
@@ -265,4 +266,42 @@ func TestServeMuxReturnErr(t *testing.T) {
 			t.Errorf("tests[%d]: error cause: %q != %q", i, got, want)
 		}
 	}
+}
+
+func BenchmarkServerSerial(b *testing.B) {
+	tlog.Reset()
+
+	m, err := NewArithServeMux()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	for i := 0; i < b.N; i++ {
+		_, err = CallArith(m, "POST", "/add", 0, 0)
+		if err != nil {
+			b.Error(err)
+		}
+	}
+}
+
+func BenchmarkServerParallel(b *testing.B) {
+	tlog.Reset()
+
+	m, err := NewArithServeMux()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(b.N)
+	for i := 0; i < b.N; i++ {
+		go func() {
+			_, err := CallArith(m, "POST", "/add", 0, 0)
+			if err != nil {
+				b.Error(err)
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
 }
