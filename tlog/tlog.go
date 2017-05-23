@@ -93,7 +93,7 @@ func Std() *zap.Logger {
 func WithContext(ctx context.Context) *zap.Logger {
 	log := std
 	if traceId := context_value.ParseTraceId(ctx); traceId != "" {
-		log = log.With(zap.String("trace-id", traceId))
+		log = log.With(zap.String("traceId", traceId))
 	}
 	return log
 }
