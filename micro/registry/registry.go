@@ -55,7 +55,7 @@ type Registry struct {
 
 func (r *Registry) Register(p Endpoint) error {
 	log := tlog.Std().Sugar().With("namespace", r.namespace, "service", p.Service, "addr", p.Addr)
-	_, err := r.client.Put(withTimeout(r.timeout), r.endpoint(p), "", clientv3.WithLease(r.leaseID))
+	_, err := r.client.Put(withTimeout(r.timeout), r.key(p), "1", clientv3.WithLease(r.leaseID))
 	if err != nil {
 		log.Errorw("put", "error", err)
 		return err
@@ -66,7 +66,7 @@ func (r *Registry) Register(p Endpoint) error {
 
 func (r *Registry) Unregister(p Endpoint) error {
 	log := tlog.Std().Sugar().With("namespace", r.namespace, "service", p.Service, "addr", p.Addr)
-	_, err := r.client.Delete(withTimeout(r.timeout), r.endpoint(p))
+	_, err := r.client.Delete(withTimeout(r.timeout), r.key(p))
 	if err != nil {
 		log.Errorw("delete", "error", err)
 		return err
@@ -85,7 +85,7 @@ func (r *Registry) Close() error {
 	return nil
 }
 
-func (r *Registry) endpoint(p Endpoint) string {
+func (r *Registry) key(p Endpoint) string {
 	return fmt.Sprintf("%s/%s/%s", r.namespace, p.Service, p.Addr)
 }
 

@@ -22,7 +22,7 @@ func NewClient(t *testing.T) *clientv3.Client {
 	return c
 }
 
-func endpoint(namespace string, p registry.Endpoint) string {
+func MakeKey(namespace string, p registry.Endpoint) string {
 	return fmt.Sprintf("%s/%s/%s", namespace, p.Service, p.Addr)
 }
 
@@ -54,10 +54,10 @@ func TestRegistry(t *testing.T) {
 		t.Fatalf("new: %v", err)
 	}
 
-	if key := endpoint(ns, p1); KeyIsExist(c, key) {
+	if key := MakeKey(ns, p1); KeyIsExist(c, key) {
 		t.Fatalf("before register: key(%s) is existed", key)
 	}
-	if key := endpoint(ns, p2); KeyIsExist(c, key) {
+	if key := MakeKey(ns, p2); KeyIsExist(c, key) {
 		t.Fatalf("before register: key(%s) is existed", key)
 	}
 
@@ -67,30 +67,30 @@ func TestRegistry(t *testing.T) {
 	if err = r.Register(p2); err != nil {
 		t.Fatalf("register p2: %v", err)
 	}
-	if key := endpoint(ns, p1); !KeyIsExist(c, key) {
+	if key := MakeKey(ns, p1); !KeyIsExist(c, key) {
 		t.Fatalf("after register: key(%s) is not existed", key)
 	}
-	if key := endpoint(ns, p2); !KeyIsExist(c, key) {
+	if key := MakeKey(ns, p2); !KeyIsExist(c, key) {
 		t.Fatalf("after register: key(%s) is not existed", key)
 	}
 
 	if err = r.Unregister(p1); err != nil {
 		t.Fatalf("unregister p1: %v", err)
 	}
-	if key := endpoint(ns, p1); KeyIsExist(c, key) {
+	if key := MakeKey(ns, p1); KeyIsExist(c, key) {
 		t.Fatalf("after unregister p1: key(%s) is existed", key)
 	}
-	if key := endpoint(ns, p2); !KeyIsExist(c, key) {
+	if key := MakeKey(ns, p2); !KeyIsExist(c, key) {
 		t.Fatalf("after unregister p1: key(%s) is not existed", key)
 	}
 
 	if err = r.Close(); err != nil {
 		t.Fatalf("close: %v", err)
 	}
-	if key := endpoint(ns, p1); KeyIsExist(c, key) {
+	if key := MakeKey(ns, p1); KeyIsExist(c, key) {
 		t.Fatalf("after close: key(%s) is existed", key)
 	}
-	if key := endpoint(ns, p2); KeyIsExist(c, key) {
+	if key := MakeKey(ns, p2); KeyIsExist(c, key) {
 		t.Fatalf("after close: key(%s) is existed", key)
 	}
 }

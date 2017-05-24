@@ -25,7 +25,7 @@ func TestTlog(t *testing.T) {
 			Dir: os.TempDir(),
 		},
 	}
-	if err := tlog.Init(cfg); err != nil {
+	if _, err := tlog.Init(cfg); err != nil {
 		t.Fatal(err)
 	}
 
