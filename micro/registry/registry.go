@@ -55,12 +55,22 @@ type Registry struct {
 
 func (r *Registry) Register(p Endpoint) error {
 	log := tlog.Std().Sugar().With("namespace", r.namespace, "service", p.Service, "addr", p.Addr)
-	_, err := r.client.Put(withTimeout(r.timeout), r.key(p), "1", clientv3.WithLease(r.leaseID))
+
+	key := r.key(p)
+	resp, err := r.client.Get(withTimeout(r.timeout), key)
 	if err != nil {
+		log.Errorw("get", "error", err)
+		return err
+	}
+	if len(resp.Kvs) != 0 {
+		log.Errorw("endpoint is registered")
+		return fmt.Errorf("endpoint(%s) is registered", key)
+	}
+	if _, err = r.client.Put(withTimeout(r.timeout), key, "1", clientv3.WithLease(r.leaseID)); err != nil {
 		log.Errorw("put", "error", err)
 		return err
 	}
-	log.Debug("put")
+	log.Debug("register")
 	return nil
 }
 
@@ -71,7 +81,7 @@ func (r *Registry) Unregister(p Endpoint) error {
 		log.Errorw("delete", "error", err)
 		return err
 	}
-	log.Debug("delete")
+	log.Debug("unregister")
 	return nil
 }
 
