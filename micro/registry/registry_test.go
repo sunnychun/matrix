@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coreos/etcd/cmd/etcd/clientv3"
+	"github.com/coreos/etcd/clientv3"
 	"github.com/ironzhang/matrix/micro/registry"
 	"github.com/ironzhang/matrix/tlog"
 )

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/coreos/etcd/cmd/etcd/clientv3"
+	"github.com/coreos/etcd/clientv3"
 	"github.com/ironzhang/matrix/tlog"
 )
 

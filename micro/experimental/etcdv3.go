@@ -3,7 +3,7 @@ package experimental
 import (
 	"context"
 
-	"github.com/coreos/etcd/cmd/etcd/clientv3"
+	"github.com/coreos/etcd/clientv3"
 )
 
 func register(ctx context.Context, c *clientv3.Client, key, value string, ttl int64) (clientv3.LeaseID, error) {
