@@ -35,9 +35,9 @@ func (m *monitor) Setup(timeout time.Duration) error {
 	for _, kv := range resp.Kvs {
 		m.Put(kv)
 	}
-	m.Refresh()
-
 	log.Debugw("monitor setup", "kvs", m.kvs)
+
+	m.Refresh()
 	return nil
 }
 
