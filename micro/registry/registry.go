@@ -89,7 +89,8 @@ func (r *Registry) Close() error {
 	log := tlog.Std().Sugar().With("namespace", r.namespace)
 	_, err := r.client.Revoke(withTimeout(r.timeout), r.leaseID)
 	if err != nil {
-		log.Errorw("revoke", "error", err)
+		log.Errorw("revoke", "error", err, "leaseID", r.leaseID)
+		return err
 	}
 	log.Debugw("revoke", "leaseID", r.leaseID)
 	return nil
