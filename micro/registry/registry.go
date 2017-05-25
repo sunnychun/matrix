@@ -1,12 +1,11 @@
 package registry
 
 import (
-	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/ironzhang/matrix/tlog"
 )
 
 type Endpoint struct {
@@ -20,90 +19,71 @@ type Options struct {
 	Namespace string
 }
 
-func New(c *clientv3.Client, opts Options) (*Registry, error) {
-	log := tlog.Std().Sugar().With("namespace", opts.Namespace)
-
+func New(c *clientv3.Client, opts Options) *Registry {
 	if opts.TTL <= 0 {
 		opts.TTL = 10 // default ttl: 10s
 	}
-
-	resp, err := c.Grant(withTimeout(opts.Timeout), opts.TTL)
-	if err != nil {
-		log.Errorw("grant", "error", err)
-		return nil, err
-	}
-	if _, err = c.KeepAlive(withTimeout(opts.Timeout), resp.ID); err != nil {
-		log.Errorw("keep alive", "error", err)
-		return nil, err
-	}
-	log.Debugw("grant", "leaseID", resp.ID)
-
 	return &Registry{
 		client:    c,
-		leaseID:   resp.ID,
+		ttl:       opts.TTL,
 		timeout:   opts.Timeout,
 		namespace: opts.Namespace,
-	}, nil
+		pingers:   make(map[string]*pinger),
+	}
 }
 
 type Registry struct {
 	client    *clientv3.Client
-	leaseID   clientv3.LeaseID
+	ttl       int64
 	timeout   time.Duration
 	namespace string
+
+	mu      sync.Mutex
+	pingers map[string]*pinger
 }
 
-func (r *Registry) Register(p Endpoint) error {
-	log := tlog.Std().Sugar().With("namespace", r.namespace, "service", p.Service, "addr", p.Addr)
+func (r *Registry) Namespace() string {
+	return r.namespace
+}
 
-	key := r.key(p)
-	resp, err := r.client.Get(withTimeout(r.timeout), key)
-	if err != nil {
-		log.Errorw("get", "error", err)
+func (r *Registry) Register(point Endpoint) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	key := r.key(point)
+	if _, ok := r.pingers[key]; ok {
+		return fmt.Errorf("key(%s) existed", key)
+	}
+
+	p := newPinger(r.client, r.timeout, r.ttl, key, "1")
+	if err := p.Setup(); err != nil {
 		return err
 	}
-	if len(resp.Kvs) != 0 {
-		log.Errorw("endpoint is registered")
-		return fmt.Errorf("endpoint(%s) is registered", key)
-	}
-	if _, err = r.client.Put(withTimeout(r.timeout), key, "1", clientv3.WithLease(r.leaseID)); err != nil {
-		log.Errorw("put", "error", err)
-		return err
-	}
-	log.Debug("register")
+	r.pingers[key] = p
+
 	return nil
 }
 
-func (r *Registry) Unregister(p Endpoint) error {
-	log := tlog.Std().Sugar().With("namespace", r.namespace, "service", p.Service, "addr", p.Addr)
-	_, err := r.client.Delete(withTimeout(r.timeout), r.key(p))
-	if err != nil {
-		log.Errorw("delete", "error", err)
-		return err
+func (r *Registry) Unregister(point Endpoint) (err error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	key := r.key(point)
+	if p, ok := r.pingers[key]; ok {
+		err = p.Close()
+		delete(r.pingers, key)
 	}
-	log.Debug("unregister")
-	return nil
+	return err
 }
 
-func (r *Registry) Close() error {
-	log := tlog.Std().Sugar().With("namespace", r.namespace)
-	_, err := r.client.Revoke(withTimeout(r.timeout), r.leaseID)
-	if err != nil {
-		log.Errorw("revoke", "error", err, "leaseID", r.leaseID)
-		return err
+func (r *Registry) UnregisterAll() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, p := range r.pingers {
+		p.Close()
 	}
-	log.Debugw("revoke", "leaseID", r.leaseID)
-	return nil
+	r.pingers = make(map[string]*pinger)
 }
 
 func (r *Registry) key(p Endpoint) string {
 	return fmt.Sprintf("%s/%s/%s", r.namespace, p.Service, p.Addr)
-}
-
-func withTimeout(timeout time.Duration) context.Context {
-	if timeout <= 0 {
-		return context.Background()
-	}
-	ctx, _ := context.WithTimeout(context.Background(), timeout)
-	return ctx
 }

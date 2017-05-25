@@ -46,20 +46,18 @@ func TestRegister(t *testing.T) {
 
 	key := "sample_key"
 	value := "sample_value"
-	ttl := int64(2)
+	ttl := int64(10)
 
 	id, err := register(context.Background(), c, key, value, ttl)
 	if err != nil {
 		t.Fatal(err)
 	}
 	c.KeepAlive(context.Background(), id)
-	KVAssert(t, "register", c, key, value)
-	time.Sleep(time.Duration(ttl) * time.Second)
-	KVAssert(t, "sleep", c, key, value)
-	time.Sleep(time.Duration(ttl) * time.Second)
-	KVAssert(t, "sleep sleep", c, key, value)
-	time.Sleep(time.Duration(ttl) * time.Second)
-	KVAssert(t, "sleep sleep sleep", c, key, value)
+
+	for i := 0; i < 50; i++ {
+		KVAssert(t, fmt.Sprintf("%d", i), c, key, value)
+		time.Sleep(time.Second)
+	}
 
 	unregister(context.Background(), c, id, key)
 	KVAssert(t, "unregister", c, key, "")

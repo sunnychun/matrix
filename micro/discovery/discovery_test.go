@@ -53,5 +53,5 @@ func TestDiscovery(t *testing.T) {
 		t.Errorf("addrs: %v != %v", got, want)
 	}
 
-	d.Close()
+	d.UnwatchAll()
 }

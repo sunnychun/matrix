@@ -66,14 +66,13 @@ func (d *Discovery) Unwatch(svc string) {
 	}
 }
 
-func (d *Discovery) Close() error {
+func (d *Discovery) UnwatchAll() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	for _, s := range d.m {
 		s.Unwatch()
 	}
 	d.m = make(map[string]*service)
-	return nil
 }
 
 func (d *Discovery) Service(svc string) (Service, bool) {

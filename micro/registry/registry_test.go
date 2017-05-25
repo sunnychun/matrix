@@ -11,17 +11,6 @@ import (
 	"github.com/ironzhang/matrix/tlog"
 )
 
-func NewClient(t *testing.T) *clientv3.Client {
-	c, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{"localhost:2379", "localhost:22379", "localhost:32379"},
-		DialTimeout: 5 * time.Second,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return c
-}
-
 func MakeKey(namespace string, p registry.Endpoint) string {
 	return fmt.Sprintf("%s/%s/%s", namespace, p.Service, p.Addr)
 }
@@ -43,16 +32,12 @@ func KeyIsExist(c *clientv3.Client, key string) bool {
 }
 
 func TestRegistry(t *testing.T) {
-	c := NewClient(t)
+	c := registry.NewClient(t)
+	r := registry.New(c, registry.Options{Namespace: "TestRegistry"})
 
-	ns := "TestRegistry"
+	ns := r.Namespace()
 	p1 := registry.Endpoint{"S1", "A1"}
 	p2 := registry.Endpoint{"S2", "A2"}
-
-	r, err := registry.New(c, registry.Options{Namespace: ns})
-	if err != nil {
-		t.Fatalf("new: %v", err)
-	}
 
 	if key := MakeKey(ns, p1); KeyIsExist(c, key) {
 		t.Fatalf("before register: key(%s) is existed", key)
@@ -61,6 +46,7 @@ func TestRegistry(t *testing.T) {
 		t.Fatalf("before register: key(%s) is existed", key)
 	}
 
+	var err error
 	if err = r.Register(p1); err != nil {
 		t.Fatalf("register p1: %v", err)
 	}
@@ -74,6 +60,14 @@ func TestRegistry(t *testing.T) {
 		t.Fatalf("after register: key(%s) is not existed", key)
 	}
 
+	time.Sleep(11 * time.Second)
+	if key := MakeKey(ns, p1); !KeyIsExist(c, key) {
+		t.Fatalf("after sleep: key(%s) is not existed", key)
+	}
+	if key := MakeKey(ns, p2); !KeyIsExist(c, key) {
+		t.Fatalf("after sleep: key(%s) is not existed", key)
+	}
+
 	if err = r.Unregister(p1); err != nil {
 		t.Fatalf("unregister p1: %v", err)
 	}
@@ -84,13 +78,11 @@ func TestRegistry(t *testing.T) {
 		t.Fatalf("after unregister p1: key(%s) is not existed", key)
 	}
 
-	if err = r.Close(); err != nil {
-		t.Fatalf("close: %v", err)
-	}
+	r.UnregisterAll()
 	if key := MakeKey(ns, p1); KeyIsExist(c, key) {
-		t.Fatalf("after close: key(%s) is existed", key)
+		t.Fatalf("after unregister all: key(%s) is existed", key)
 	}
 	if key := MakeKey(ns, p2); KeyIsExist(c, key) {
-		t.Fatalf("after close: key(%s) is existed", key)
+		t.Fatalf("after unregister all: key(%s) is existed", key)
 	}
 }
