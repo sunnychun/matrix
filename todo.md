@@ -3,6 +3,5 @@
 ## module
 
 * errs
-* registry
 * framework
 
