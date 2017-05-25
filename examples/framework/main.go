@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/ironzhang/matrix/framework"
+	"github.com/ironzhang/matrix/framework/modules/pprof-module"
 	"github.com/ironzhang/matrix/tlog"
 )
 
@@ -61,6 +62,6 @@ func main() {
 		LoadConfigFunc: LoadConfig,
 		OnInitFunc:     OnInit,
 		OnFiniFunc:     OnFini,
-		Modules:        []framework.Module{TestModule},
+		Modules:        []framework.Module{TestModule, pprof_module.Module},
 	}).Main()
 }
