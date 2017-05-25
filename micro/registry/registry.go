@@ -19,6 +19,16 @@ type Options struct {
 	Namespace string
 }
 
+type Registry struct {
+	client    *clientv3.Client
+	ttl       int64
+	timeout   time.Duration
+	namespace string
+
+	mu      sync.Mutex
+	pingers map[string]*pinger
+}
+
 func New(c *clientv3.Client, opts Options) *Registry {
 	if opts.TTL <= 0 {
 		opts.TTL = 10 // default ttl: 10s
@@ -30,16 +40,6 @@ func New(c *clientv3.Client, opts Options) *Registry {
 		namespace: opts.Namespace,
 		pingers:   make(map[string]*pinger),
 	}
-}
-
-type Registry struct {
-	client    *clientv3.Client
-	ttl       int64
-	timeout   time.Duration
-	namespace string
-
-	mu      sync.Mutex
-	pingers map[string]*pinger
 }
 
 func (r *Registry) Namespace() string {

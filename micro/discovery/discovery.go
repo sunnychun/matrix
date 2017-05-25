@@ -33,6 +33,10 @@ func New(client *clientv3.Client, opts Options) *Discovery {
 	}
 }
 
+func (d *Discovery) Namespace() string {
+	return d.namespace
+}
+
 func (d *Discovery) Watch(svc string, refreshs ...Refresh) (Service, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
