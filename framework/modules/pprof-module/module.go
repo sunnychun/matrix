@@ -15,7 +15,7 @@ var Config = &config{
 	Addr: ":6060",
 }
 
-var Module framework.Module = &module{}
+var Module = &module{}
 
 func init() {
 	framework.Register(Module, Config)
