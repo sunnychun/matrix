@@ -4,8 +4,16 @@ import (
 	"github.com/ironzhang/matrix/framework"
 	"github.com/ironzhang/matrix/tlog"
 
+	_ "github.com/ironzhang/matrix/framework/modules/etcd-module"
+	_ "github.com/ironzhang/matrix/framework/modules/micro-module"
 	_ "github.com/ironzhang/matrix/framework/modules/pprof-module"
 )
+
+var Module = &module{}
+
+func init() {
+	framework.Register(Module, nil)
+}
 
 type module struct {
 }
@@ -16,20 +24,14 @@ func (m *module) Name() string {
 
 func (m *module) Init() error {
 	log := tlog.Std().Sugar().With("module", m.Name())
-	log.Debug("init")
+	log.Debug("init success")
 	return nil
 }
 
 func (m *module) Fini() error {
 	log := tlog.Std().Sugar().With("module", m.Name())
-	log.Debug("fini")
+	log.Debug("fini success")
 	return nil
-}
-
-var Module = &module{}
-
-func init() {
-	framework.Register(Module, nil)
 }
 
 func main() {

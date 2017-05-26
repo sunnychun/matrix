@@ -37,10 +37,10 @@ func (m *module) Init() (err error) {
 	log := tlog.Std().Sugar().With("module", m.Name())
 	m.ln, err = net.Listen("tcp", Config.Addr)
 	if err != nil {
-		log.Errorw("listen", "error", err, "addr", Config.Addr)
+		log.Errorw("listen", "error", err)
 		return err
 	}
-	log.Debugw("listen", "addr", Config.Addr)
+	log.Debug("init success")
 	return nil
 }
 
@@ -49,8 +49,8 @@ func (m *module) Fini() error {
 }
 
 func (m *module) Run(ctx context.Context) {
-	log := tlog.Std().Sugar().With("module", m.Name())
-	log.Debugw("start serve")
+	log := tlog.Std().Sugar().With("module", m.Name(), "addr", Config.Addr)
+	log.Debug("start serve")
 
 	go func() {
 		<-ctx.Done()
@@ -58,5 +58,5 @@ func (m *module) Run(ctx context.Context) {
 	}()
 	http.Serve(m.ln, nil)
 
-	log.Debugw("stop serve")
+	log.Debug("stop serve")
 }

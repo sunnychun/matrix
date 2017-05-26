@@ -1,5 +1,25 @@
 {
+	"etcd-module": {
+		"endpoints": [
+			"localhost:2379",
+			"localhost:22379",
+			"localhost:32379"
+		],
+		"auto-sync-interval": 0,
+		"dial-timeout": 5000000000,
+		"TLS": null,
+		"username": "",
+		"password": "",
+		"reject-old-cluster": false,
+		"DialOptions": null,
+		"Context": null
+	},
+	"micro-module": {
+		"Namespace": "matrix",
+		"Timeout": "5s",
+		"TTL": 10
+	},
 	"pprof-module": {
-		"Addr": ":6061"
+		"Addr": ":6060"
 	}
 }
