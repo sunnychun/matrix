@@ -2,47 +2,36 @@ package main
 
 import (
 	"github.com/ironzhang/matrix/framework"
-	"github.com/ironzhang/matrix/framework/modules/pprof-module"
 	"github.com/ironzhang/matrix/tlog"
+
+	_ "github.com/ironzhang/matrix/framework/modules/pprof-module"
 )
 
-func OnInit() error {
-	log := tlog.Std()
-	log.Debug("on init")
+type module struct {
+}
+
+func (m *module) Name() string {
+	return "main-module"
+}
+
+func (m *module) Init() error {
+	log := tlog.Std().Sugar().With("module", m.Name())
+	log.Debug("init")
 	return nil
 }
 
-func OnFini() error {
-	log := tlog.Std()
-	log.Debug("on fini")
+func (m *module) Fini() error {
+	log := tlog.Std().Sugar().With("module", m.Name())
+	log.Debug("fini")
 	return nil
 }
 
-type testModule struct {
-}
+var Module = &module{}
 
-func (m *testModule) Name() string {
-	return "TestModule"
+func init() {
+	framework.Register(Module, nil)
 }
-
-func (m *testModule) Init() error {
-	log := tlog.Std()
-	log.Debug("test module init")
-	return nil
-}
-
-func (m *testModule) Fini() error {
-	log := tlog.Std()
-	log.Debug("test module fini")
-	return nil
-}
-
-var TestModule = &testModule{}
 
 func main() {
-	(&framework.Framework{
-		OnInitFunc: OnInit,
-		OnFiniFunc: OnFini,
-		Modules:    []framework.Module{TestModule, pprof_module.Module},
-	}).Main()
+	framework.Main()
 }

@@ -2,11 +2,13 @@ package framework
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
 	"os/signal"
 	"sync"
+	"time"
+
+	"github.com/ironzhang/matrix/framework/config"
 )
 
 type Module interface {
@@ -15,46 +17,20 @@ type Module interface {
 	Fini() error
 }
 
-type Server interface {
-	Serve(ctx context.Context)
+type Runner interface {
+	Run(ctx context.Context)
 }
 
-type Framework struct {
-	FlagSet *flag.FlagSet
-
-	OnInitFunc func() error
-
-	OnFiniFunc func() error
-
-	Modules []Module
-
-	options Options
+type framework struct {
+	options options
+	configs config.ConfigSet
+	modules []Module
 }
 
-func (f *Framework) init() {
-	if f.FlagSet == nil {
-		f.FlagSet = flag.CommandLine
-	}
-}
-
-func (f *Framework) onInit() error {
-	if f.OnInitFunc != nil {
-		return f.OnInitFunc()
-	}
-	return nil
-}
-
-func (f *Framework) onFini() error {
-	if f.OnFiniFunc != nil {
-		return f.OnFiniFunc()
-	}
-	return nil
-}
-
-func (f *Framework) setup() {
+func (f *framework) doCommandLine() {
 	var err error
 	if f.options.ConfigExample != "" {
-		if err = Config.write(f.options.ConfigExample); err != nil {
+		if err = f.configs.WriteToFile(f.options.ConfigExample); err != nil {
 			fmt.Fprintf(os.Stderr, "generate config example: %v\n", err)
 			os.Exit(3)
 		}
@@ -62,18 +38,17 @@ func (f *Framework) setup() {
 	}
 }
 
-func (f *Framework) Main() {
+func (f *framework) Main() {
 	var err error
-
-	f.init()
-	f.options.setup(f.FlagSet)
-	f.FlagSet.Parse(os.Args[1:])
-	f.setup()
+	f.options.Parse()
+	f.doCommandLine()
 
 	// load config
-	if err = loadConfig(f.options.ConfigFile); err != nil {
-		fmt.Fprintf(os.Stderr, "load config: %v\n", err)
-		os.Exit(3)
+	if f.options.ConfigFile != "" {
+		if err = f.configs.LoadFromFile(f.options.ConfigFile); err != nil {
+			fmt.Fprintf(os.Stderr, "load config: %v\n", err)
+			os.Exit(3)
+		}
 	}
 
 	// tlog load from file
@@ -84,56 +59,73 @@ func (f *Framework) Main() {
 	}
 	defer log.Sync()
 
-	// on init
-	if err = f.onInit(); err != nil {
-		fmt.Fprintf(os.Stderr, "on init: %v\n", err)
-		os.Exit(3)
-	}
-
 	// module init
-	for _, m := range f.Modules {
+	for _, m := range f.modules {
 		if err = m.Init(); err != nil {
 			fmt.Fprintf(os.Stderr, "module(%s) init: %v\n", m.Name(), err)
 			os.Exit(3)
 		}
 	}
 
+	// quit signal
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt, os.Kill)
 		<-ch
 		cancel()
+		time.Sleep(10 * time.Second)
+		fmt.Fprintf(os.Stderr, "wait 10s, force exit")
+		os.Exit(-3)
 	}()
 
-	// module serve
+	// module run
 	var wg sync.WaitGroup
-	for _, m := range f.Modules {
-		if s, ok := m.(Server); ok {
+	for _, m := range f.modules {
+		if r, ok := m.(Runner); ok {
 			wg.Add(1)
-			go func(s Server) {
+			go func(r Runner) {
 				defer wg.Done()
-				s.Serve(ctx)
-			}(s)
+				r.Run(ctx)
+			}(r)
 		}
 	}
 	wg.Wait()
 
 	// module fini
 	var code int
-	for _, m := range f.Modules {
+	for i := len(f.modules) - 1; i >= 0; i-- {
+		m := f.modules[i]
 		if err = m.Fini(); err != nil {
 			code = -3
 			fmt.Fprintf(os.Stderr, "module(%s) fini: %v\n", m.Name(), err)
 			continue
 		}
 	}
-
-	// on fini
-	if err = f.onFini(); err != nil {
-		fmt.Fprintf(os.Stderr, "on fini: %v\n", err)
-		os.Exit(3)
-	}
-
 	os.Exit(code)
+}
+
+func (f *framework) Register(m Module, config interface{}) {
+	for _, v := range f.modules {
+		if v.Name() == m.Name() {
+			panic(fmt.Sprintf("module(%s) duplicate", m.Name()))
+		}
+	}
+	f.modules = append(f.modules, m)
+
+	if config != nil {
+		if err := f.configs.Register(m.Name(), config); err != nil {
+			panic(err)
+		}
+	}
+}
+
+var f = &framework{}
+
+func Main() {
+	f.Main()
+}
+
+func Register(m Module, config interface{}) {
+	f.Register(m, config)
 }

@@ -1,5 +1,5 @@
 {
 	"pprof-module": {
-		"Addr": ":8080"
+		"Addr": ":6061"
 	}
 }

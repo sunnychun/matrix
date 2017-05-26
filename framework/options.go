@@ -1,15 +1,23 @@
 package framework
 
-import "flag"
+import (
+	"flag"
+	"os"
+)
 
-type Options struct {
-	ConfigFile    string
-	LogConfigFile string
-	ConfigExample string
+var CommandLine = flag.CommandLine
+
+type options struct {
+	ConfigFile       string
+	ConfigExample    string
+	LogConfigFile    string
+	LogConfigExample string
 }
 
-func (o *Options) setup(f *flag.FlagSet) {
-	f.StringVar(&o.ConfigFile, "config-file", "", "指定配置文件")
-	f.StringVar(&o.LogConfigFile, "log-config-file", "", "指定日志配置文件")
-	f.StringVar(&o.ConfigExample, "config-example", "", "指定生成的示例配置文件")
+func (o *options) Parse() {
+	CommandLine.StringVar(&o.ConfigFile, "config-file", "", "指定配置文件选项")
+	CommandLine.StringVar(&o.ConfigExample, "config-example", "", "生成配置示例选项")
+	CommandLine.StringVar(&o.LogConfigFile, "log-config-file", "", "指定日志配置文件选项")
+	CommandLine.StringVar(&o.LogConfigExample, "log-config-example", "", "生成日志配置示例选项")
+	CommandLine.Parse(os.Args[1:])
 }
