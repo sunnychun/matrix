@@ -29,11 +29,24 @@ type framework struct {
 
 func (f *framework) doCommandLine() {
 	var err error
+	var quit bool
+
 	if f.options.ConfigExample != "" {
 		if err = f.configs.WriteToFile(f.options.ConfigExample); err != nil {
 			fmt.Fprintf(os.Stderr, "generate config example: %v\n", err)
 			os.Exit(3)
 		}
+		quit = true
+	}
+	if f.options.LogConfigExample != "" {
+		if err = tlogWriteToFile(f.options.LogConfigExample); err != nil {
+			fmt.Fprintf(os.Stderr, "generate log config example: %v\n", err)
+			os.Exit(3)
+		}
+		quit = true
+	}
+
+	if quit {
 		os.Exit(0)
 	}
 }

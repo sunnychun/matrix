@@ -16,3 +16,7 @@ func tlogLoadFromFile(file string) (*zap.Logger, error) {
 	}
 	return tlog.Std(), nil
 }
+
+func tlogWriteToFile(file string) error {
+	return jsoncfg.WriteToFile(file, tlog.Config{})
+}
