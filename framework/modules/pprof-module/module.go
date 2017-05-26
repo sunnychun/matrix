@@ -8,6 +8,7 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/ironzhang/matrix/framework"
+	"github.com/ironzhang/matrix/tlog"
 )
 
 var Module framework.Module = &module{}
@@ -21,10 +22,12 @@ func (m *module) Name() string {
 }
 
 func (m *module) Init() (err error) {
-	m.ln, err = net.Listen("tcp", ":6060")
+	log := tlog.Std().Sugar().With("module", m.Name())
+	m.ln, err = net.Listen("tcp", Conf.Addr)
 	if err != nil {
 		return err
 	}
+	log.Debugw("listen", "addr", Conf.Addr)
 	return nil
 }
 

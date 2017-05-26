@@ -13,13 +13,14 @@ type Module interface {
 	Name() string
 	Init() error
 	Fini() error
+}
+
+type Server interface {
 	Serve(ctx context.Context)
 }
 
 type Framework struct {
 	FlagSet *flag.FlagSet
-
-	LoadConfigFunc func(file string) error
 
 	OnInitFunc func() error
 
@@ -36,13 +37,6 @@ func (f *Framework) init() {
 	}
 }
 
-func (f *Framework) loadConfig(file string) error {
-	if f.LoadConfigFunc != nil {
-		return f.LoadConfigFunc(file)
-	}
-	return nil
-}
-
 func (f *Framework) onInit() error {
 	if f.OnInitFunc != nil {
 		return f.OnInitFunc()
@@ -57,10 +51,30 @@ func (f *Framework) onFini() error {
 	return nil
 }
 
+func (f *Framework) setup() {
+	var err error
+	if f.options.ConfigExample != "" {
+		if err = Config.write(f.options.ConfigExample); err != nil {
+			fmt.Fprintf(os.Stderr, "generate config example: %v\n", err)
+			os.Exit(3)
+		}
+		os.Exit(0)
+	}
+}
+
 func (f *Framework) Main() {
+	var err error
+
 	f.init()
 	f.options.setup(f.FlagSet)
 	f.FlagSet.Parse(os.Args[1:])
+	f.setup()
+
+	// load config
+	if err = loadConfig(f.options.ConfigFile); err != nil {
+		fmt.Fprintf(os.Stderr, "load config: %v\n", err)
+		os.Exit(3)
+	}
 
 	// tlog load from file
 	log, err := tlogLoadFromFile(f.options.LogConfigFile)
@@ -69,12 +83,6 @@ func (f *Framework) Main() {
 		os.Exit(3)
 	}
 	defer log.Sync()
-
-	// load config
-	if err = f.loadConfig(f.options.ConfigFile); err != nil {
-		fmt.Fprintf(os.Stderr, "load config: %v\n", err)
-		os.Exit(3)
-	}
 
 	// on init
 	if err = f.onInit(); err != nil {
@@ -101,11 +109,13 @@ func (f *Framework) Main() {
 	// module serve
 	var wg sync.WaitGroup
 	for _, m := range f.Modules {
-		wg.Add(1)
-		go func(m Module) {
-			defer wg.Done()
-			m.Serve(ctx)
-		}(m)
+		if s, ok := m.(Server); ok {
+			wg.Add(1)
+			go func(s Server) {
+				defer wg.Done()
+				s.Serve(ctx)
+			}(s)
+		}
 	}
 	wg.Wait()
 
