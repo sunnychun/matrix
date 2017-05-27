@@ -13,21 +13,21 @@ var Config = &clientv3.Config{
 	DialTimeout: 5 * time.Second,
 }
 
-var Module = &module{}
+var Module = &M{}
 
 func init() {
 	framework.Register(Module, Config)
 }
 
-type module struct {
+type M struct {
 	client *clientv3.Client
 }
 
-func (m *module) Name() string {
+func (m *M) Name() string {
 	return "etcd-module"
 }
 
-func (m *module) Init() (err error) {
+func (m *M) Init() (err error) {
 	log := tlog.Std().Sugar().With("module", m.Name())
 	m.client, err = clientv3.New(*Config)
 	if err != nil {
@@ -38,10 +38,10 @@ func (m *module) Init() (err error) {
 	return nil
 }
 
-func (m *module) Fini() error {
+func (m *M) Fini() error {
 	return m.client.Close()
 }
 
-func (m *module) Client() *clientv3.Client {
+func (m *M) Client() *clientv3.Client {
 	return m.client
 }

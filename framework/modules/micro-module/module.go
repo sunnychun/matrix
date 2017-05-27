@@ -11,34 +11,34 @@ import (
 	"github.com/ironzhang/matrix/tlog"
 )
 
-var Config = &config{
+var Config = &C{
 	Namespace: "matrix",
-	TTL:       10,
 	Timeout:   jsoncfg.Duration(5 * time.Second),
+	TTL:       10,
 }
 
-var Module = &module{}
+var Module = &M{}
 
 func init() {
 	framework.Register(Module, Config)
 }
 
-type config struct {
+type C struct {
 	Namespace string
 	Timeout   jsoncfg.Duration
 	TTL       int64
 }
 
-type module struct {
+type M struct {
 	r *registry.Registry
 	d *discovery.Discovery
 }
 
-func (m *module) Name() string {
+func (m *M) Name() string {
 	return "micro-module"
 }
 
-func (m *module) Init() error {
+func (m *M) Init() error {
 	log := tlog.Std().Sugar().With("module", m.Name())
 	c := etcd_module.Module.Client()
 	m.r = registry.New(c, registry.Options{TTL: Config.TTL, Timeout: time.Duration(Config.Timeout), Namespace: Config.Namespace})
@@ -47,16 +47,16 @@ func (m *module) Init() error {
 	return nil
 }
 
-func (m *module) Fini() error {
+func (m *M) Fini() error {
 	m.r.UnregisterAll()
 	m.d.UnwatchAll()
 	return nil
 }
 
-func (m *module) Registry() *registry.Registry {
+func (m *M) Registry() *registry.Registry {
 	return m.r
 }
 
-func (m *module) Discovery() *discovery.Discovery {
+func (m *M) Discovery() *discovery.Discovery {
 	return m.d
 }
