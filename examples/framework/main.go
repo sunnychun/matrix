@@ -4,9 +4,9 @@ import (
 	"github.com/ironzhang/matrix/framework"
 	"github.com/ironzhang/matrix/tlog"
 
+	_ "github.com/ironzhang/matrix/framework/modules/debug-module"
 	_ "github.com/ironzhang/matrix/framework/modules/etcd-module"
 	_ "github.com/ironzhang/matrix/framework/modules/micro-module"
-	_ "github.com/ironzhang/matrix/framework/modules/pprof-module"
 )
 
 var Module = &module{}

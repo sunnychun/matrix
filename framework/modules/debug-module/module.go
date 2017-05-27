@@ -1,4 +1,4 @@
-package pprof_module
+package debug_module
 
 import (
 	"context"
@@ -11,29 +11,29 @@ import (
 	"github.com/ironzhang/matrix/tlog"
 )
 
-var Config = &config{
+var Config = &C{
 	Addr: ":6060",
 }
 
-var Module = &module{}
+var Module = &M{}
 
 func init() {
 	framework.Register(Module, Config)
 }
 
-type config struct {
+type C struct {
 	Addr string
 }
 
-type module struct {
+type M struct {
 	ln net.Listener
 }
 
-func (m *module) Name() string {
-	return "pprof-module"
+func (m *M) Name() string {
+	return "debug-module"
 }
 
-func (m *module) Init() (err error) {
+func (m *M) Init() (err error) {
 	log := tlog.Std().Sugar().With("module", m.Name())
 	m.ln, err = net.Listen("tcp", Config.Addr)
 	if err != nil {
@@ -44,11 +44,11 @@ func (m *module) Init() (err error) {
 	return nil
 }
 
-func (m *module) Fini() error {
+func (m *M) Fini() error {
 	return nil
 }
 
-func (m *module) Run(ctx context.Context) {
+func (m *M) Run(ctx context.Context) {
 	log := tlog.Std().Sugar().With("module", m.Name(), "addr", Config.Addr)
 	log.Debug("start serve")
 
