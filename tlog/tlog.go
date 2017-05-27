@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+var level zap.AtomicLevel
 var std *zap.Logger
 
 func init() {
@@ -69,9 +70,15 @@ func (cfg Config) buildOptions(sink zapcore.WriteSyncer) []zap.Option {
 }
 
 func Reset() error {
-	var err error
-	std, err = zap.NewDevelopment()
-	return err
+	cfg := zap.NewDevelopmentConfig()
+	logger, err := cfg.Build()
+	if err != nil {
+		return err
+	}
+
+	level = cfg.Level
+	std = logger
+	return nil
 }
 
 func Init(cfg Config) (*zap.Logger, error) {
@@ -79,15 +86,20 @@ func Init(cfg Config) (*zap.Logger, error) {
 	if err != nil {
 		return nil, err
 	}
+	level = zap.NewAtomicLevelAt(cfg.Level)
 	opts := cfg.buildOptions(sink)
 	enc := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
-	core := zapcore.NewCore(enc, sink, zap.NewAtomicLevelAt(cfg.Level))
+	core := zapcore.NewCore(enc, sink, level)
 	std = zap.New(core, opts...)
 	return std, nil
 }
 
 func Std() *zap.Logger {
 	return std
+}
+
+func Level() zap.AtomicLevel {
+	return level
 }
 
 func WithContext(ctx context.Context) *zap.Logger {

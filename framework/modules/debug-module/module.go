@@ -4,8 +4,7 @@ import (
 	"context"
 	"net"
 	"net/http"
-
-	_ "net/http/pprof"
+	"net/http/pprof"
 
 	"github.com/ironzhang/matrix/framework"
 	"github.com/ironzhang/matrix/tlog"
@@ -56,7 +55,15 @@ func (m *M) Run(ctx context.Context) {
 		<-ctx.Done()
 		m.ln.Close()
 	}()
-	http.Serve(m.ln, nil)
+
+	mux := http.NewServeMux()
+	mux.Handle("/debug/log/level", tlog.Level())
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	http.Serve(m.ln, mux)
 
 	log.Debug("stop serve")
 }
