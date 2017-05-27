@@ -41,8 +41,9 @@ func (d *Discovery) Watch(svc string, refreshs ...Refresh) (Service, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	if _, ok := d.m[svc]; ok {
-		return nil, fmt.Errorf("service(%s) is watched", svc)
+	if s, ok := d.m[svc]; ok {
+		s.AddRefreshs(refreshs)
+		return s, nil
 	}
 
 	s := newService(svc, refreshs...)

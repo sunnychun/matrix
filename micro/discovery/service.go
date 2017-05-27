@@ -20,10 +20,11 @@ func newService(name string, refreshs ...Refresh) *service {
 
 type service struct {
 	name     string
+	refreshm sync.RWMutex
 	refreshs []Refresh
 	done     chan struct{}
 	ok       <-chan struct{}
-	mu       sync.RWMutex
+	addrm    sync.RWMutex
 	addrs    []string
 }
 
@@ -32,16 +33,16 @@ func (s *service) Name() string {
 }
 
 func (s *service) Addrs() []string {
-	s.mu.RLock()
+	s.addrm.RLock()
 	addrs := s.addrs
-	s.mu.RUnlock()
+	s.addrm.RUnlock()
 	return addrs
 }
 
 func (s *service) SetAddrs(addrs []string) {
-	s.mu.Lock()
+	s.addrm.Lock()
 	s.addrs = addrs
-	s.mu.Unlock()
+	s.addrm.Unlock()
 }
 
 func (s *service) Refresh(kvs map[string][]byte) {
@@ -52,8 +53,23 @@ func (s *service) Refresh(kvs map[string][]byte) {
 	sort.Strings(addrs)
 	s.SetAddrs(addrs)
 
+	s.refreshm.RLock()
+	defer s.refreshm.RUnlock()
 	for _, refresh := range s.refreshs {
 		refresh(addrs)
+	}
+}
+
+func (s *service) AddRefreshs(refreshs []Refresh) {
+	if len(refreshs) > 0 {
+		s.refreshm.Lock()
+		s.refreshs = append(s.refreshs, refreshs...)
+		s.refreshm.Unlock()
+
+		addrs := s.Addrs()
+		for _, refresh := range refreshs {
+			refresh(addrs)
+		}
 	}
 }
 

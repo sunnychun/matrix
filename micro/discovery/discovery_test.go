@@ -55,3 +55,34 @@ func TestDiscovery(t *testing.T) {
 
 	d.UnwatchAll()
 }
+
+func TestRefresh(t *testing.T) {
+	tlog.Init(tlog.Config{DisableStderr: true})
+
+	var count int
+	f := func(addrs []string) {
+		count++
+	}
+
+	c := discovery.NewClient(t)
+	d := discovery.New(c, discovery.Options{Namespace: "TestRefresh"})
+	if _, err := d.Watch("Service", f); err != nil {
+		t.Fatalf("watch: %v", err)
+	}
+	if _, err := d.Watch("Service", f); err != nil {
+		t.Fatalf("watch: %v", err)
+	}
+	if got, want := count, 2; got != want {
+		t.Errorf("after watch, count: %v != %v", got, want)
+	}
+
+	if _, err := c.Put(context.Background(), "TestRefresh/Service/127.0.0.1:2001", "1"); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(100 * time.Millisecond)
+	if got, want := count, 4; got != want {
+		t.Errorf("after put, count: %v != %v", got, want)
+	}
+
+	d.UnwatchAll()
+}
