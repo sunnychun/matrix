@@ -8,7 +8,6 @@ import (
 	"github.com/ironzhang/matrix/jsoncfg"
 	"github.com/ironzhang/matrix/micro/discovery"
 	"github.com/ironzhang/matrix/micro/registry"
-	"github.com/ironzhang/matrix/tlog"
 )
 
 var Config = &C{
@@ -39,11 +38,16 @@ func (m *M) Name() string {
 }
 
 func (m *M) Init() error {
-	log := tlog.Std().Sugar().With("module", m.Name())
 	c := etcd_module.Module.Client()
-	m.r = registry.New(c, registry.Options{TTL: Config.TTL, Timeout: time.Duration(Config.Timeout), Namespace: Config.Namespace})
-	m.d = discovery.New(c, discovery.Options{Namespace: Config.Namespace, Timeout: time.Duration(Config.Timeout)})
-	log.Debug("init success")
+	m.r = registry.New(c, registry.Options{
+		TTL:       Config.TTL,
+		Timeout:   time.Duration(Config.Timeout),
+		Namespace: Config.Namespace,
+	})
+	m.d = discovery.New(c, discovery.Options{
+		Namespace: Config.Namespace,
+		Timeout:   time.Duration(Config.Timeout),
+	})
 	return nil
 }
 

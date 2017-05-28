@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ironzhang/matrix/framework/config"
+	"github.com/ironzhang/matrix/tlog"
 )
 
 type Module interface {
@@ -51,6 +52,56 @@ func (f *framework) doCommandLine() {
 	}
 }
 
+func (f *framework) main() (err error) {
+	log := tlog.Std().Sugar()
+
+	// module init
+	for _, m := range f.modules {
+		if err = m.Init(); err != nil {
+			log.Errorw("init", "module", m.Name(), "error", err)
+			return fmt.Errorf("init %s: %v", m.Name(), err)
+		}
+		log.Debugw("init", "module", m.Name())
+	}
+
+	// quit signal
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		ch := make(chan os.Signal, 1)
+		signal.Notify(ch, os.Interrupt, os.Kill)
+		<-ch
+		cancel()
+		time.Sleep(10 * time.Second)
+		fmt.Fprintf(os.Stderr, "wait 10s, force exit")
+		log.Sync()
+		os.Exit(-3)
+	}()
+
+	// module run
+	var wg sync.WaitGroup
+	for _, m := range f.modules {
+		if r, ok := m.(Runner); ok {
+			wg.Add(1)
+			go func(r Runner) {
+				defer wg.Done()
+				r.Run(ctx)
+			}(r)
+		}
+	}
+	wg.Wait()
+
+	// module fini
+	for i := len(f.modules) - 1; i >= 0; i-- {
+		m := f.modules[i]
+		if err = m.Fini(); err != nil {
+			log.Errorw("fini", "module", m.Name(), "error", err)
+			continue
+		}
+		log.Debugw("fini", "module", m.Name())
+	}
+	return nil
+}
+
 func (f *framework) Main() {
 	var err error
 	f.options.Parse()
@@ -72,50 +123,11 @@ func (f *framework) Main() {
 	}
 	defer log.Sync()
 
-	// module init
-	for _, m := range f.modules {
-		if err = m.Init(); err != nil {
-			fmt.Fprintf(os.Stderr, "module(%s) init: %v\n", m.Name(), err)
-			os.Exit(3)
-		}
+	// main
+	if err = f.main(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(3)
 	}
-
-	// quit signal
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		ch := make(chan os.Signal, 1)
-		signal.Notify(ch, os.Interrupt, os.Kill)
-		<-ch
-		cancel()
-		time.Sleep(10 * time.Second)
-		fmt.Fprintf(os.Stderr, "wait 10s, force exit")
-		os.Exit(-3)
-	}()
-
-	// module run
-	var wg sync.WaitGroup
-	for _, m := range f.modules {
-		if r, ok := m.(Runner); ok {
-			wg.Add(1)
-			go func(r Runner) {
-				defer wg.Done()
-				r.Run(ctx)
-			}(r)
-		}
-	}
-	wg.Wait()
-
-	// module fini
-	var code int
-	for i := len(f.modules) - 1; i >= 0; i-- {
-		m := f.modules[i]
-		if err = m.Fini(); err != nil {
-			code = -3
-			fmt.Fprintf(os.Stderr, "module(%s) fini: %v\n", m.Name(), err)
-			continue
-		}
-	}
-	os.Exit(code)
 }
 
 func (f *framework) Register(m Module, config interface{}) {

@@ -1,11 +1,11 @@
 package etcd_module
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/ironzhang/matrix/framework"
-	"github.com/ironzhang/matrix/tlog"
 )
 
 var Config = &clientv3.Config{
@@ -28,13 +28,10 @@ func (m *M) Name() string {
 }
 
 func (m *M) Init() (err error) {
-	log := tlog.Std().Sugar().With("module", m.Name())
 	m.client, err = clientv3.New(*Config)
 	if err != nil {
-		log.Errorw("new clientv3", "error", err)
-		return err
+		return fmt.Errorf("new client: %v", err)
 	}
-	log.Debug("init success")
 	return nil
 }
 

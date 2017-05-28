@@ -2,35 +2,30 @@ package main
 
 import (
 	"github.com/ironzhang/matrix/framework"
-	"github.com/ironzhang/matrix/tlog"
 
 	_ "github.com/ironzhang/matrix/framework/modules/debug-module"
 	_ "github.com/ironzhang/matrix/framework/modules/etcd-module"
 	_ "github.com/ironzhang/matrix/framework/modules/micro-module"
 )
 
-var Module = &module{}
+var Module = &M{}
 
 func init() {
 	framework.Register(Module, nil)
 }
 
-type module struct {
+type M struct {
 }
 
-func (m *module) Name() string {
+func (m *M) Name() string {
 	return "main-module"
 }
 
-func (m *module) Init() error {
-	log := tlog.Std().Sugar().With("module", m.Name())
-	log.Debug("init success")
+func (m *M) Init() error {
 	return nil
 }
 
-func (m *module) Fini() error {
-	log := tlog.Std().Sugar().With("module", m.Name())
-	log.Debug("fini success")
+func (m *M) Fini() error {
 	return nil
 }
 
