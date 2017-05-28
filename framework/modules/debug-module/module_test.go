@@ -1,4 +1,4 @@
-package micro_module
+package debug_module
 
 import (
 	"testing"

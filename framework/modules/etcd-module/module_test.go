@@ -1,10 +1,9 @@
-package etcd_module_test
+package etcd_module
 
 import (
 	"testing"
 
 	"github.com/ironzhang/matrix/framework"
-	_ "github.com/ironzhang/matrix/framework/modules/etcd-module"
 )
 
 func TestModule(t *testing.T) {

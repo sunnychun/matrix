@@ -1,4 +1,4 @@
-package micro_module
+package backend_module
 
 import (
 	"testing"
