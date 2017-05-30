@@ -22,7 +22,7 @@ func (m *M) Name() string {
 	return "debug-module"
 }
 
-func (m *M) Init() (err error) {
+func (m *M) Init() error {
 	mux := http.NewServeMux()
 	mux.Handle("/debug/log/level", tlog.Level())
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
