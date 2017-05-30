@@ -2,4 +2,12 @@
 
 ## module
 
-* framework: 改进模块访问命令行选项的方式;micro-module优化改进;pprof-module改为debug-module
+* framework:
+
+1. config-module, 支持动态查看、修改、保存配置
+2. option-module, 支持动态查看、修改命令行选项
+
+* micro/discovery: 支持WatchAll
+
+* cmd/dashboard
+
