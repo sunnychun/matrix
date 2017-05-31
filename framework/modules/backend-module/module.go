@@ -49,8 +49,6 @@ func (m *M) Run(ctx context.Context) {
 		m.ln.Close()
 	}()
 
-	//m.Handle("/log/level/", tlog.Level())
-
 	log := tlog.Std().Sugar().With("module", m.Name(), "addr", Config.Addr)
 	log.Info("start")
 	http.Serve(m.ln, &m.ServeMux)
