@@ -145,6 +145,10 @@ func (f *framework) Register(m Module, config interface{}) {
 	}
 }
 
+func (f *framework) ModuleConfig(m string) (interface{}, bool) {
+	return f.configs.Config(m)
+}
+
 var f = &framework{}
 
 func Main() {
@@ -153,4 +157,8 @@ func Main() {
 
 func Register(m Module, config interface{}) {
 	f.Register(m, config)
+}
+
+func ModuleConfig(m string) (interface{}, bool) {
+	return f.ModuleConfig(m)
 }

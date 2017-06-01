@@ -83,3 +83,39 @@ func TestByteSlice(t *testing.T) {
 		}
 	}
 }
+
+func TestJSONUnmarshal(t *testing.T) {
+	type Value struct {
+		A int
+		B string
+	}
+
+	tests := []struct {
+		value Value
+		data  string
+	}{
+		{
+			value: Value{A: 1},
+			data:  `{"B": "B"}`,
+		},
+		{
+			value: Value{B: "B"},
+			data:  `{"A": 1}`,
+		},
+		{
+			value: Value{A: 1, B: "B"},
+			data:  `{"A": 1, "B": "B"}`,
+		},
+	}
+	for i, tt := range tests {
+		if err := json.Unmarshal([]byte(tt.data), &tt.value); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := tt.value.A, 1; got != want {
+			t.Errorf("tests[%d]: A: %d != %d", i, got, want)
+		}
+		if got, want := tt.value.B, "B"; got != want {
+			t.Errorf("tests[%d]: B: %s != %s", i, got, want)
+		}
+	}
+}

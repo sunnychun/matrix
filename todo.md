@@ -1,11 +1,14 @@
 # TODO
 
-## module
+## features
 
-* framework:
+* restful使用pat作为路由器
 
-1. config-module, 支持动态查看、修改、保存配置
-2. option-module, 支持动态查看、修改命令行选项
+* modules:
+
+1. option-module, 支持动态注册命令行选项
+2. config-module, 支持动态注册配置项
+3. dashboard-module, 支持动态查看、修改日志等级、命令行选项和配置项等
 
 * micro/discovery: 支持WatchAll
 

@@ -28,6 +28,11 @@ func (c *ConfigSet) Register(name string, config interface{}) error {
 	return nil
 }
 
+func (c *ConfigSet) Config(name string) (interface{}, bool) {
+	config, ok := c.configs[name]
+	return config, ok
+}
+
 func (c *ConfigSet) LoadFromFile(file string) (err error) {
 	if c.configs == nil {
 		c.configs = make(map[string]interface{})
