@@ -158,6 +158,10 @@ func (m *ServeMux) serve(ctx context.Context, h *handler, w http.ResponseWriter,
 		}
 	}
 
+	// with context
+	ctx = context_value.WithRequest(ctx, r)
+	ctx = context_value.WithResponseWriter(ctx, w)
+
 	// Handle
 	if err = h.Handle(ctx, in1, in2); err != nil {
 		log.Infow("handle", "error", err)
