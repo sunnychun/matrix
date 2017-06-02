@@ -12,7 +12,7 @@ import (
 	"github.com/ironzhang/matrix/framework/pkg/tags"
 )
 
-func Setup(f *flag.FlagSet, name, usage string, value interface{}) (err error) {
+func Setup(f *flag.FlagSet, value interface{}, name, usage string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if _, ok := r.(runtime.Error); ok {

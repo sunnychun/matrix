@@ -83,7 +83,7 @@ func ExampleUsage2() {
 		F64: 64.1,
 		S:   "1",
 	}
-	Setup(f, "", "", &v)
+	Setup(f, &v, "", "")
 	f.Usage()
 
 	// output:
@@ -158,7 +158,7 @@ func TestSetup1(t *testing.T) {
 	var err error
 	f := flag.NewFlagSet("", flag.ContinueOnError)
 
-	if err = Setup(f, "", "", &v); err != nil {
+	if err = Setup(f, &v, "", ""); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
 
@@ -196,7 +196,7 @@ func TestSetup2(t *testing.T) {
 	var err error
 	f := flag.NewFlagSet("", flag.ContinueOnError)
 
-	if err = Setup(f, "", "", &v); err != nil {
+	if err = Setup(f, &v, "", ""); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
 

@@ -45,49 +45,49 @@ func (v *values) SetupVars(f *flag.FlagSet) {
 }
 
 func (v *values) Setup(f *flag.FlagSet) (err error) {
-	if err = Setup(f, "bool", "usage of bool", &v.B); err != nil {
+	if err = Setup(f, &v.B, "bool", "usage of bool"); err != nil {
 		return err
 	}
-	if err = Setup(f, "int", "usage of int", &v.I); err != nil {
+	if err = Setup(f, &v.I, "int", "usage of int"); err != nil {
 		return err
 	}
-	if err = Setup(f, "int8", "usage of int8", &v.I8); err != nil {
+	if err = Setup(f, &v.I8, "int8", "usage of int8"); err != nil {
 		return err
 	}
-	if err = Setup(f, "int16", "usage of int16", &v.I16); err != nil {
+	if err = Setup(f, &v.I16, "int16", "usage of int16"); err != nil {
 		return err
 	}
-	if err = Setup(f, "int32", "usage of int32", &v.I32); err != nil {
+	if err = Setup(f, &v.I32, "int32", "usage of int32"); err != nil {
 		return err
 	}
-	if err = Setup(f, "int64", "usage of int64", &v.I64); err != nil {
+	if err = Setup(f, &v.I64, "int64", "usage of int64"); err != nil {
 		return err
 	}
-	if err = Setup(f, "uint", "usage of uint", &v.U); err != nil {
+	if err = Setup(f, &v.U, "uint", "usage of uint"); err != nil {
 		return err
 	}
-	if err = Setup(f, "uint8", "usage of uint8", &v.U8); err != nil {
+	if err = Setup(f, &v.U8, "uint8", "usage of uint8"); err != nil {
 		return err
 	}
-	if err = Setup(f, "uint16", "usage of uint16", &v.U16); err != nil {
+	if err = Setup(f, &v.U16, "uint16", "usage of uint16"); err != nil {
 		return err
 	}
-	if err = Setup(f, "uint32", "usage of uint32", &v.U32); err != nil {
+	if err = Setup(f, &v.U32, "uint32", "usage of uint32"); err != nil {
 		return err
 	}
-	if err = Setup(f, "uint64", "usage of uint64", &v.U64); err != nil {
+	if err = Setup(f, &v.U64, "uint64", "usage of uint64"); err != nil {
 		return err
 	}
-	if err = Setup(f, "uintptr", "usage of uintptr", &v.Uptr); err != nil {
+	if err = Setup(f, &v.Uptr, "uintptr", "usage of uintptr"); err != nil {
 		return err
 	}
-	if err = Setup(f, "float32", "usage of float32", &v.F32); err != nil {
+	if err = Setup(f, &v.F32, "float32", "usage of float32"); err != nil {
 		return err
 	}
-	if err = Setup(f, "float64", "usage of float64", &v.F64); err != nil {
+	if err = Setup(f, &v.F64, "float64", "usage of float64"); err != nil {
 		return err
 	}
-	if err = Setup(f, "string", "usage of string", &v.S); err != nil {
+	if err = Setup(f, &v.S, "string", "usage of string"); err != nil {
 		return err
 	}
 	return nil
