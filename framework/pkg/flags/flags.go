@@ -1,4 +1,4 @@
-package options
+package flags
 
 import (
 	"flag"
@@ -26,26 +26,26 @@ func Setup(f *flag.FlagSet, value interface{}, name, usage string) (err error) {
 		}
 	}()
 
-	options{f}.SetupValue(name, usage, reflect.ValueOf(value).Elem())
+	flags{f}.SetupValue(name, usage, reflect.ValueOf(value).Elem())
 	return
 }
 
-type options struct {
+type flags struct {
 	*flag.FlagSet
 }
 
-func (o options) SetupValue(name, usage string, v reflect.Value) {
+func (f flags) SetupValue(name, usage string, v reflect.Value) {
 	switch k := v.Kind(); k {
 	case reflect.Bool:
-		o.Var(newBoolValue(v), name, usage)
+		f.Var(newBoolValue(v), name, usage)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		o.Var(newIntValue(v), name, usage)
+		f.Var(newIntValue(v), name, usage)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		o.Var(newUintValue(v), name, usage)
+		f.Var(newUintValue(v), name, usage)
 	case reflect.Float32, reflect.Float64:
-		o.Var(newFloatValue(v), name, usage)
+		f.Var(newFloatValue(v), name, usage)
 	case reflect.String:
-		o.Var(newStringValue(v), name, usage)
+		f.Var(newStringValue(v), name, usage)
 	case reflect.Struct:
 		if name != "" {
 			name = name + "."
@@ -53,13 +53,13 @@ func (o options) SetupValue(name, usage string, v reflect.Value) {
 		if usage != "" {
 			usage = usage + ": "
 		}
-		o.SetupStruct(name, usage, v)
+		f.SetupStruct(name, usage, v)
 	default:
 		panic(errs.ErrorAt("options.SetupValue", fmt.Errorf("unsupport %s kind", k)))
 	}
 }
 
-func (o options) SetupStruct(prefix, usage string, v reflect.Value) {
+func (f flags) SetupStruct(prefix, usage string, v reflect.Value) {
 	t := v.Type()
 	for i := 0; i < t.NumField(); i++ {
 		sf := t.Field(i)
@@ -73,7 +73,7 @@ func (o options) SetupStruct(prefix, usage string, v reflect.Value) {
 		if name == "-" {
 			continue
 		}
-		o.SetupValue(prefix+name, usage+sf.Tag.Get("usage"), v.Field(i))
+		f.SetupValue(prefix+name, usage+sf.Tag.Get("usage"), v.Field(i))
 	}
 }
 
