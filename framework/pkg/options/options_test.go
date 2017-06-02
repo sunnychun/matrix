@@ -120,83 +120,12 @@ func ExampleUsage2() {
 	//     	usage of uintptr
 }
 
-func TestSetupByValues(t *testing.T) {
-	f := flag.NewFlagSet("TestSetupByValues", flag.ContinueOnError)
-
+func TestSetup0(t *testing.T) {
 	var v values
-	v.Setup(f)
+	var err error
+	f := flag.NewFlagSet("", flag.ContinueOnError)
 
-	args := []string{
-		"-bool", "true",
-		"-int", "-1",
-		"-int8", "-8",
-		"-int16", "-16",
-		"-int32", "-32",
-		"-int64", "-64",
-		"-uint", "1",
-		"-uint8", "8",
-		"-uint16", "16",
-		"-uint32", "32",
-		"-uint64", "64",
-		"-uintptr", "1",
-		"-float32", "32.1",
-		"-float64", "64.1",
-		"-string", "1",
-	}
-	f.Parse(args)
-
-	if got, want := v.B, true; got != want {
-		t.Errorf("bool: %v != %v", got, want)
-	}
-	if got, want := v.I, int(-1); got != want {
-		t.Errorf("int: %v != %v", got, want)
-	}
-	if got, want := v.I8, int8(-8); got != want {
-		t.Errorf("int8: %v != %v", got, want)
-	}
-	if got, want := v.I16, int16(-16); got != want {
-		t.Errorf("int16: %v != %v", got, want)
-	}
-	if got, want := v.I32, int32(-32); got != want {
-		t.Errorf("int32: %v != %v", got, want)
-	}
-	if got, want := v.I64, int64(-64); got != want {
-		t.Errorf("int64: %v != %v", got, want)
-	}
-	if got, want := v.U, uint(1); got != want {
-		t.Errorf("uint: %v != %v", got, want)
-	}
-	if got, want := v.U8, uint8(8); got != want {
-		t.Errorf("uint8: %v != %v", got, want)
-	}
-	if got, want := v.U16, uint16(16); got != want {
-		t.Errorf("uint16: %v != %v", got, want)
-	}
-	if got, want := v.U32, uint32(32); got != want {
-		t.Errorf("uint32: %v != %v", got, want)
-	}
-	if got, want := v.U64, uint64(64); got != want {
-		t.Errorf("uint64: %v != %v", got, want)
-	}
-	if got, want := v.Uptr, uintptr(1); got != want {
-		t.Errorf("uintptr: %v != %v", got, want)
-	}
-	if got, want := v.F32, float32(32.1); got != want {
-		t.Errorf("float32: %v != %v", got, want)
-	}
-	if got, want := v.F64, float64(64.1); got != want {
-		t.Errorf("float64: %v != %v", got, want)
-	}
-	if got, want := v.S, "1"; got != want {
-		t.Errorf("string: %v != %v", got, want)
-	}
-}
-
-func TestSetupByStructs(t *testing.T) {
-	f := flag.NewFlagSet("TestSetupByValues", flag.ContinueOnError)
-
-	var v values
-	if err := Setup(f, "", "", &v); err != nil {
+	if err = v.Setup(f); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
 
@@ -219,49 +148,78 @@ func TestSetupByStructs(t *testing.T) {
 	}
 	f.Parse(args)
 
-	if got, want := v.B, true; got != want {
-		t.Errorf("bool: %v != %v", got, want)
+	if err = v.Assert(); err != nil {
+		t.Error(err)
 	}
-	if got, want := v.I, int(-1); got != want {
-		t.Errorf("int: %v != %v", got, want)
+}
+
+func TestSetup1(t *testing.T) {
+	var v values
+	var err error
+	f := flag.NewFlagSet("", flag.ContinueOnError)
+
+	if err = Setup(f, "", "", &v); err != nil {
+		t.Fatalf("setup: %v", err)
 	}
-	if got, want := v.I8, int8(-8); got != want {
-		t.Errorf("int8: %v != %v", got, want)
+
+	args := []string{
+		"-bool", "true",
+		"-int", "-1",
+		"-int8", "-8",
+		"-int16", "-16",
+		"-int32", "-32",
+		"-int64", "-64",
+		"-uint", "1",
+		"-uint8", "8",
+		"-uint16", "16",
+		"-uint32", "32",
+		"-uint64", "64",
+		"-uintptr", "1",
+		"-float32", "32.1",
+		"-float64", "64.1",
+		"-string", "1",
 	}
-	if got, want := v.I16, int16(-16); got != want {
-		t.Errorf("int16: %v != %v", got, want)
+	f.Parse(args)
+
+	if err = v.Assert(); err != nil {
+		t.Error(err)
 	}
-	if got, want := v.I32, int32(-32); got != want {
-		t.Errorf("int32: %v != %v", got, want)
+}
+
+func TestSetup2(t *testing.T) {
+	type V struct {
+		V1 values `json:"v1" usage:"v1"`
+		V2 values `json:"v2" usage:"v2"`
 	}
-	if got, want := v.I64, int64(-64); got != want {
-		t.Errorf("int64: %v != %v", got, want)
+
+	var v V
+	var err error
+	f := flag.NewFlagSet("", flag.ContinueOnError)
+
+	if err = Setup(f, "", "", &v); err != nil {
+		t.Fatalf("setup: %v", err)
 	}
-	if got, want := v.U, uint(1); got != want {
-		t.Errorf("uint: %v != %v", got, want)
+
+	args := []string{
+		"-v1.bool", "true",
+		"-v1.int", "-1",
+		"-v1.int8", "-8",
+		"-v1.int16", "-16",
+		"-v1.int32", "-32",
+		"-v1.int64", "-64",
+		"-v1.uint", "1",
+		"-v1.uint8", "8",
+		"-v1.uint16", "16",
+		"-v1.uint32", "32",
+		"-v1.uint64", "64",
+		"-v1.uintptr", "1",
+		"-v1.float32", "32.1",
+		"-v1.float64", "64.1",
+		"-v1.string", "1",
 	}
-	if got, want := v.U8, uint8(8); got != want {
-		t.Errorf("uint8: %v != %v", got, want)
-	}
-	if got, want := v.U16, uint16(16); got != want {
-		t.Errorf("uint16: %v != %v", got, want)
-	}
-	if got, want := v.U32, uint32(32); got != want {
-		t.Errorf("uint32: %v != %v", got, want)
-	}
-	if got, want := v.U64, uint64(64); got != want {
-		t.Errorf("uint64: %v != %v", got, want)
-	}
-	if got, want := v.Uptr, uintptr(1); got != want {
-		t.Errorf("uintptr: %v != %v", got, want)
-	}
-	if got, want := v.F32, float32(32.1); got != want {
-		t.Errorf("float32: %v != %v", got, want)
-	}
-	if got, want := v.F64, float64(64.1); got != want {
-		t.Errorf("float64: %v != %v", got, want)
-	}
-	if got, want := v.S, "1"; got != want {
-		t.Errorf("string: %v != %v", got, want)
+	f.Parse(args)
+
+	if err = v.V1.Assert(); err != nil {
+		t.Error(err)
 	}
 }

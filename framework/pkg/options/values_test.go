@@ -2,6 +2,7 @@ package options
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -43,22 +44,102 @@ func (v *values) SetupVars(f *flag.FlagSet) {
 	f.Var(newStringValue(reflect.ValueOf(&v.S).Elem()), "string", "usage of string")
 }
 
-func (v *values) Setup(f *flag.FlagSet) {
-	Setup(f, "bool", "usage of bool", &v.B)
-	Setup(f, "int", "usage of int", &v.I)
-	Setup(f, "int8", "usage of int8", &v.I8)
-	Setup(f, "int16", "usage of int16", &v.I16)
-	Setup(f, "int32", "usage of int32", &v.I32)
-	Setup(f, "int64", "usage of int64", &v.I64)
-	Setup(f, "uint", "usage of uint", &v.U)
-	Setup(f, "uint8", "usage of uint8", &v.U8)
-	Setup(f, "uint16", "usage of uint16", &v.U16)
-	Setup(f, "uint32", "usage of uint32", &v.U32)
-	Setup(f, "uint64", "usage of uint64", &v.U64)
-	Setup(f, "uintptr", "usage of uintptr", &v.Uptr)
-	Setup(f, "float32", "usage of float32", &v.F32)
-	Setup(f, "float64", "usage of float64", &v.F64)
-	Setup(f, "string", "usage of string", &v.S)
+func (v *values) Setup(f *flag.FlagSet) (err error) {
+	if err = Setup(f, "bool", "usage of bool", &v.B); err != nil {
+		return err
+	}
+	if err = Setup(f, "int", "usage of int", &v.I); err != nil {
+		return err
+	}
+	if err = Setup(f, "int8", "usage of int8", &v.I8); err != nil {
+		return err
+	}
+	if err = Setup(f, "int16", "usage of int16", &v.I16); err != nil {
+		return err
+	}
+	if err = Setup(f, "int32", "usage of int32", &v.I32); err != nil {
+		return err
+	}
+	if err = Setup(f, "int64", "usage of int64", &v.I64); err != nil {
+		return err
+	}
+	if err = Setup(f, "uint", "usage of uint", &v.U); err != nil {
+		return err
+	}
+	if err = Setup(f, "uint8", "usage of uint8", &v.U8); err != nil {
+		return err
+	}
+	if err = Setup(f, "uint16", "usage of uint16", &v.U16); err != nil {
+		return err
+	}
+	if err = Setup(f, "uint32", "usage of uint32", &v.U32); err != nil {
+		return err
+	}
+	if err = Setup(f, "uint64", "usage of uint64", &v.U64); err != nil {
+		return err
+	}
+	if err = Setup(f, "uintptr", "usage of uintptr", &v.Uptr); err != nil {
+		return err
+	}
+	if err = Setup(f, "float32", "usage of float32", &v.F32); err != nil {
+		return err
+	}
+	if err = Setup(f, "float64", "usage of float64", &v.F64); err != nil {
+		return err
+	}
+	if err = Setup(f, "string", "usage of string", &v.S); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (v *values) Assert() error {
+	if got, want := v.B, true; got != want {
+		return fmt.Errorf("bool: %v != %v", got, want)
+	}
+	if got, want := v.I, int(-1); got != want {
+		return fmt.Errorf("int: %v != %v", got, want)
+	}
+	if got, want := v.I8, int8(-8); got != want {
+		return fmt.Errorf("int8: %v != %v", got, want)
+	}
+	if got, want := v.I16, int16(-16); got != want {
+		return fmt.Errorf("int16: %v != %v", got, want)
+	}
+	if got, want := v.I32, int32(-32); got != want {
+		return fmt.Errorf("int32: %v != %v", got, want)
+	}
+	if got, want := v.I64, int64(-64); got != want {
+		return fmt.Errorf("int64: %v != %v", got, want)
+	}
+	if got, want := v.U, uint(1); got != want {
+		return fmt.Errorf("uint: %v != %v", got, want)
+	}
+	if got, want := v.U8, uint8(8); got != want {
+		return fmt.Errorf("uint8: %v != %v", got, want)
+	}
+	if got, want := v.U16, uint16(16); got != want {
+		return fmt.Errorf("uint16: %v != %v", got, want)
+	}
+	if got, want := v.U32, uint32(32); got != want {
+		return fmt.Errorf("uint32: %v != %v", got, want)
+	}
+	if got, want := v.U64, uint64(64); got != want {
+		return fmt.Errorf("uint64: %v != %v", got, want)
+	}
+	if got, want := v.Uptr, uintptr(1); got != want {
+		return fmt.Errorf("uintptr: %v != %v", got, want)
+	}
+	if got, want := v.F32, float32(32.1); got != want {
+		return fmt.Errorf("float32: %v != %v", got, want)
+	}
+	if got, want := v.F64, float64(64.1); got != want {
+		return fmt.Errorf("float64: %v != %v", got, want)
+	}
+	if got, want := v.S, "1"; got != want {
+		return fmt.Errorf("string: %v != %v", got, want)
+	}
+	return nil
 }
 
 func ExampleUsage0() {
@@ -119,7 +200,7 @@ func ExampleUsage0() {
 
 func TestValues(t *testing.T) {
 	var v values
-	f := flag.NewFlagSet("TestValue", flag.ContinueOnError)
+	f := flag.NewFlagSet("", flag.ContinueOnError)
 	v.SetupVars(f)
 
 	args := []string{
@@ -141,49 +222,7 @@ func TestValues(t *testing.T) {
 	}
 	f.Parse(args)
 
-	if got, want := v.B, true; got != want {
-		t.Errorf("bool: %v != %v", got, want)
-	}
-	if got, want := v.I, int(-1); got != want {
-		t.Errorf("int: %v != %v", got, want)
-	}
-	if got, want := v.I8, int8(-8); got != want {
-		t.Errorf("int8: %v != %v", got, want)
-	}
-	if got, want := v.I16, int16(-16); got != want {
-		t.Errorf("int16: %v != %v", got, want)
-	}
-	if got, want := v.I32, int32(-32); got != want {
-		t.Errorf("int32: %v != %v", got, want)
-	}
-	if got, want := v.I64, int64(-64); got != want {
-		t.Errorf("int64: %v != %v", got, want)
-	}
-	if got, want := v.U, uint(1); got != want {
-		t.Errorf("uint: %v != %v", got, want)
-	}
-	if got, want := v.U8, uint8(8); got != want {
-		t.Errorf("uint8: %v != %v", got, want)
-	}
-	if got, want := v.U16, uint16(16); got != want {
-		t.Errorf("uint16: %v != %v", got, want)
-	}
-	if got, want := v.U32, uint32(32); got != want {
-		t.Errorf("uint32: %v != %v", got, want)
-	}
-	if got, want := v.U64, uint64(64); got != want {
-		t.Errorf("uint64: %v != %v", got, want)
-	}
-	if got, want := v.Uptr, uintptr(1); got != want {
-		t.Errorf("uintptr: %v != %v", got, want)
-	}
-	if got, want := v.F32, float32(32.1); got != want {
-		t.Errorf("float32: %v != %v", got, want)
-	}
-	if got, want := v.F64, float64(64.1); got != want {
-		t.Errorf("float64: %v != %v", got, want)
-	}
-	if got, want := v.S, "1"; got != want {
-		t.Errorf("string: %v != %v", got, want)
+	if err := v.Assert(); err != nil {
+		t.Error(err)
 	}
 }
