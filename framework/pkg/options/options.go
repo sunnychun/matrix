@@ -3,16 +3,16 @@ package options
 import (
 	"flag"
 	"fmt"
-	"os"
 	"reflect"
 	"runtime"
+	"strings"
+	"unicode"
 
+	"github.com/ironzhang/matrix/errs"
 	"github.com/ironzhang/matrix/framework/pkg/tags"
 )
 
-var CommandLine = flag.CommandLine
-
-func Setup(options interface{}) (err error) {
+func Setup(f *flag.FlagSet, name, usage string, value interface{}) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if _, ok := r.(runtime.Error); ok {
@@ -26,70 +26,80 @@ func Setup(options interface{}) (err error) {
 		}
 	}()
 
-	setup(reflect.ValueOf(options).Elem())
-	return CommandLine.Parse(os.Args[1:])
+	options{f}.SetupValue(name, usage, reflect.ValueOf(value).Elem())
+	return
 }
 
-func setup(val reflect.Value) {
-	setupValue("", "", val)
+type options struct {
+	*flag.FlagSet
 }
 
-func setupValue(name, usage string, val reflect.Value) {
-	switch k := val.Kind(); k {
+func (o options) SetupValue(name, usage string, v reflect.Value) {
+	switch k := v.Kind(); k {
 	case reflect.Bool:
-		CommandLine.Var(newBoolValue(val), name, usage)
+		o.Var(newBoolValue(v), name, usage)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		CommandLine.Var(newIntValue(val), name, usage)
+		o.Var(newIntValue(v), name, usage)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		CommandLine.Var(newUintValue(val), name, usage)
+		o.Var(newUintValue(v), name, usage)
 	case reflect.Float32, reflect.Float64:
-		CommandLine.Var(newFloatValue(val), name, usage)
+		o.Var(newFloatValue(v), name, usage)
 	case reflect.String:
-		CommandLine.Var(newStringValue(val), name, usage)
+		o.Var(newStringValue(v), name, usage)
 	case reflect.Struct:
-		setupStruct(name, val)
-	case reflect.Map:
-		setupMap(name, val)
+		if name != "" {
+			name = name + "."
+		}
+		if usage != "" {
+			usage = usage + ": "
+		}
+		o.SetupStruct(name, usage, v)
 	default:
-		panic(fmt.Errorf("unsupport %s kind", k))
+		panic(errs.ErrorAt("options.SetupValue", fmt.Errorf("unsupport %s kind", k)))
 	}
 }
 
-func setupStruct(prefix string, val reflect.Value) {
-	if prefix != "" {
-		prefix += "."
-	}
-	t := val.Type()
+func (o options) SetupStruct(prefix, usage string, v reflect.Value) {
+	t := v.Type()
 	for i := 0; i < t.NumField(); i++ {
 		sf := t.Field(i)
+		if sf.PkgPath != "" && !sf.Anonymous { // unexported
+			continue
+		}
 		name := sf.Name
-		if v := parseNameFromTag(sf.Tag); v != "" {
-			name = v
+		if s := parseNameFromTag(sf.Tag); s != "" {
+			name = s
 		}
 		if name == "-" {
 			continue
 		}
-		usage := parseUsageFromTag(sf.Tag)
-		setupValue(prefix+name, usage, val.Field(i))
-	}
-}
-
-func setupMap(prefix string, val reflect.Value) {
-	if prefix != "" {
-		prefix += "."
-	}
-	keys := val.MapKeys()
-	for _, key := range keys {
-		setupValue(prefix+key.String(), "", val.MapIndex(key))
+		o.SetupValue(prefix+name, usage+sf.Tag.Get("usage"), v.Field(i))
 	}
 }
 
 func parseNameFromTag(tag reflect.StructTag) string {
-	v, _ := tags.ParseTag(tag.Get("json"))
-	return v
+	name, _ := tags.ParseTag(tag.Get("json"))
+	if isValidTag(name) {
+		return name
+	}
+	return ""
 }
 
-func parseUsageFromTag(tag reflect.StructTag) string {
-	v, _ := tags.ParseTag(tag.Get("usage"))
-	return v
+func isValidTag(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, c := range s {
+		switch {
+		case strings.ContainsRune("!#$%&()*+-./:<=>?@[]^_{|}~ ", c):
+			// Backslash and quote chars are reserved, but
+			// otherwise any punctuation chars are allowed
+			// in a tag name.
+		default:
+			if !unicode.IsLetter(c) && !unicode.IsDigit(c) {
+				return false
+			}
+		}
+	}
+	return true
 }

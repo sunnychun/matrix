@@ -8,65 +8,83 @@ import (
 )
 
 type values struct {
-	b    bool
-	i    int
-	i8   int8
-	i16  int16
-	i32  int32
-	i64  int64
-	u    uint
-	u8   uint8
-	u16  uint16
-	u32  uint32
-	u64  uint64
-	uptr uintptr
-	f32  float32
-	f64  float64
-	s    string
+	B    bool    `json:"bool" usage:"usage of bool"`
+	I    int     `json:"int" usage:"usage of int"`
+	I8   int8    `json:"int8" usage:"usage of int8"`
+	I16  int16   `json:"int16" usage:"usage of int16"`
+	I32  int32   `json:"int32" usage:"usage of int32"`
+	I64  int64   `json:"int64" usage:"usage of int64"`
+	U    uint    `json:"uint" usage:"usage of uint"`
+	U8   uint8   `json:"uint8" usage:"usage of uint8"`
+	U16  uint16  `json:"uint16" usage:"usage of uint16"`
+	U32  uint32  `json:"uint32" usage:"usage of uint32"`
+	U64  uint64  `json:"uint64" usage:"usage of uint64"`
+	Uptr uintptr `json:"uintptr" usage:"usage of uintptr"`
+	F32  float32 `json:"float32" usage:"usage of float32"`
+	F64  float64 `json:"float64" usage:"usage of float64"`
+	S    string  `json:"string" usage:"usage of string"`
+}
+
+func (v *values) SetupVars(f *flag.FlagSet) {
+	f.Var(newBoolValue(reflect.ValueOf(&v.B).Elem()), "bool", "usage of bool")
+	f.Var(newIntValue(reflect.ValueOf(&v.I).Elem()), "int", "usage of int")
+	f.Var(newIntValue(reflect.ValueOf(&v.I8).Elem()), "int8", "usage of int8")
+	f.Var(newIntValue(reflect.ValueOf(&v.I16).Elem()), "int16", "usage of int16")
+	f.Var(newIntValue(reflect.ValueOf(&v.I32).Elem()), "int32", "usage of int32")
+	f.Var(newIntValue(reflect.ValueOf(&v.I64).Elem()), "int64", "usage of int64")
+	f.Var(newUintValue(reflect.ValueOf(&v.U).Elem()), "uint", "usage of uint")
+	f.Var(newUintValue(reflect.ValueOf(&v.U8).Elem()), "uint8", "usage of uint8")
+	f.Var(newUintValue(reflect.ValueOf(&v.U16).Elem()), "uint16", "usage of uint16")
+	f.Var(newUintValue(reflect.ValueOf(&v.U32).Elem()), "uint32", "usage of uint32")
+	f.Var(newUintValue(reflect.ValueOf(&v.U64).Elem()), "uint64", "usage of uint64")
+	f.Var(newUintValue(reflect.ValueOf(&v.Uptr).Elem()), "uintptr", "usage of uintptr")
+	f.Var(newFloatValue(reflect.ValueOf(&v.F32).Elem()), "float32", "usage of float32")
+	f.Var(newFloatValue(reflect.ValueOf(&v.F64).Elem()), "float64", "usage of float64")
+	f.Var(newStringValue(reflect.ValueOf(&v.S).Elem()), "string", "usage of string")
 }
 
 func (v *values) Setup(f *flag.FlagSet) {
-	f.Var(newBoolValue(reflect.ValueOf(&v.b).Elem()), "bool", "usage of bool")
-	f.Var(newIntValue(reflect.ValueOf(&v.i).Elem()), "int", "usage of int")
-	f.Var(newIntValue(reflect.ValueOf(&v.i8).Elem()), "int8", "usage of int8")
-	f.Var(newIntValue(reflect.ValueOf(&v.i16).Elem()), "int16", "usage of int16")
-	f.Var(newIntValue(reflect.ValueOf(&v.i32).Elem()), "int32", "usage of int32")
-	f.Var(newIntValue(reflect.ValueOf(&v.i64).Elem()), "int64", "usage of int64")
-	f.Var(newUintValue(reflect.ValueOf(&v.u).Elem()), "uint", "usage of uint")
-	f.Var(newUintValue(reflect.ValueOf(&v.u8).Elem()), "uint8", "usage of uint8")
-	f.Var(newUintValue(reflect.ValueOf(&v.u16).Elem()), "uint16", "usage of uint16")
-	f.Var(newUintValue(reflect.ValueOf(&v.u32).Elem()), "uint32", "usage of uint32")
-	f.Var(newUintValue(reflect.ValueOf(&v.u64).Elem()), "uint64", "usage of uint64")
-	f.Var(newUintValue(reflect.ValueOf(&v.uptr).Elem()), "uintptr", "usage of uintptr")
-	f.Var(newFloatValue(reflect.ValueOf(&v.f32).Elem()), "float32", "usage of float32")
-	f.Var(newFloatValue(reflect.ValueOf(&v.f64).Elem()), "float64", "usage of float64")
-	f.Var(newStringValue(reflect.ValueOf(&v.s).Elem()), "string", "usage of string")
+	Setup(f, "bool", "usage of bool", &v.B)
+	Setup(f, "int", "usage of int", &v.I)
+	Setup(f, "int8", "usage of int8", &v.I8)
+	Setup(f, "int16", "usage of int16", &v.I16)
+	Setup(f, "int32", "usage of int32", &v.I32)
+	Setup(f, "int64", "usage of int64", &v.I64)
+	Setup(f, "uint", "usage of uint", &v.U)
+	Setup(f, "uint8", "usage of uint8", &v.U8)
+	Setup(f, "uint16", "usage of uint16", &v.U16)
+	Setup(f, "uint32", "usage of uint32", &v.U32)
+	Setup(f, "uint64", "usage of uint64", &v.U64)
+	Setup(f, "uintptr", "usage of uintptr", &v.Uptr)
+	Setup(f, "float32", "usage of float32", &v.F32)
+	Setup(f, "float64", "usage of float64", &v.F64)
+	Setup(f, "string", "usage of string", &v.S)
 }
 
-func ExampleUsage() {
+func ExampleUsage0() {
 	v := values{
-		b:   true,
-		i:   -1,
-		i8:  -8,
-		i16: -16,
-		i32: -32,
-		i64: -64,
-		u:   1,
-		u8:  8,
-		u16: 16,
-		u32: 32,
-		u64: 64,
-		f32: 32.1,
-		f64: 64.1,
-		s:   "1",
+		B:   true,
+		I:   -1,
+		I8:  -8,
+		I16: -16,
+		I32: -32,
+		I64: -64,
+		U:   1,
+		U8:  8,
+		U16: 16,
+		U32: 32,
+		U64: 64,
+		F32: 32.1,
+		F64: 64.1,
+		S:   "1",
 	}
-	f := flag.NewFlagSet("TestValue", flag.ContinueOnError)
+	f := flag.NewFlagSet("", flag.ContinueOnError)
 	f.SetOutput(os.Stdout)
-	v.Setup(f)
+	v.SetupVars(f)
 	f.Usage()
 
 	// output:
-	// Usage of TestValue:
+	// Usage:
 	//   -bool value
 	//     	usage of bool (default true)
 	//   -float32 value
@@ -102,7 +120,7 @@ func ExampleUsage() {
 func TestValues(t *testing.T) {
 	var v values
 	f := flag.NewFlagSet("TestValue", flag.ContinueOnError)
-	v.Setup(f)
+	v.SetupVars(f)
 
 	args := []string{
 		"-bool", "true",
@@ -123,49 +141,49 @@ func TestValues(t *testing.T) {
 	}
 	f.Parse(args)
 
-	if got, want := v.b, true; got != want {
+	if got, want := v.B, true; got != want {
 		t.Errorf("bool: %v != %v", got, want)
 	}
-	if got, want := v.i, int(-1); got != want {
+	if got, want := v.I, int(-1); got != want {
 		t.Errorf("int: %v != %v", got, want)
 	}
-	if got, want := v.i8, int8(-8); got != want {
+	if got, want := v.I8, int8(-8); got != want {
 		t.Errorf("int8: %v != %v", got, want)
 	}
-	if got, want := v.i16, int16(-16); got != want {
+	if got, want := v.I16, int16(-16); got != want {
 		t.Errorf("int16: %v != %v", got, want)
 	}
-	if got, want := v.i32, int32(-32); got != want {
+	if got, want := v.I32, int32(-32); got != want {
 		t.Errorf("int32: %v != %v", got, want)
 	}
-	if got, want := v.i64, int64(-64); got != want {
+	if got, want := v.I64, int64(-64); got != want {
 		t.Errorf("int64: %v != %v", got, want)
 	}
-	if got, want := v.u, uint(1); got != want {
+	if got, want := v.U, uint(1); got != want {
 		t.Errorf("uint: %v != %v", got, want)
 	}
-	if got, want := v.u8, uint8(8); got != want {
+	if got, want := v.U8, uint8(8); got != want {
 		t.Errorf("uint8: %v != %v", got, want)
 	}
-	if got, want := v.u16, uint16(16); got != want {
+	if got, want := v.U16, uint16(16); got != want {
 		t.Errorf("uint16: %v != %v", got, want)
 	}
-	if got, want := v.u32, uint32(32); got != want {
+	if got, want := v.U32, uint32(32); got != want {
 		t.Errorf("uint32: %v != %v", got, want)
 	}
-	if got, want := v.u64, uint64(64); got != want {
+	if got, want := v.U64, uint64(64); got != want {
 		t.Errorf("uint64: %v != %v", got, want)
 	}
-	if got, want := v.uptr, uintptr(1); got != want {
+	if got, want := v.Uptr, uintptr(1); got != want {
 		t.Errorf("uintptr: %v != %v", got, want)
 	}
-	if got, want := v.f32, float32(32.1); got != want {
+	if got, want := v.F32, float32(32.1); got != want {
 		t.Errorf("float32: %v != %v", got, want)
 	}
-	if got, want := v.f64, float64(64.1); got != want {
+	if got, want := v.F64, float64(64.1); got != want {
 		t.Errorf("float64: %v != %v", got, want)
 	}
-	if got, want := v.s, "1"; got != want {
+	if got, want := v.S, "1"; got != want {
 		t.Errorf("string: %v != %v", got, want)
 	}
 }
