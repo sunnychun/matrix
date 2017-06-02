@@ -14,13 +14,11 @@ import (
 	"github.com/ironzhang/matrix/tlog"
 )
 
-var CommandLine = flag.CommandLine
-
 type Options struct {
-	ConfigFile       string `json:"config-file" usage:"指定配置文件选项"`
-	ConfigExample    string `json:"config-example" usage:"生成配置示例选项"`
-	LogConfigFile    string `json:"log-config-file" usage:"指定日志配置文件选项"`
-	LogConfigExample string `json:"log-config-example" usage:"生成日志配置示例选项"`
+	ConfigFile       string `json:"config-file,readonly" usage:"指定配置文件选项"`
+	ConfigExample    string `json:"config-example,readonly" usage:"生成配置示例选项"`
+	LogConfigFile    string `json:"log-config-file,readonly" usage:"指定日志配置文件选项"`
+	LogConfigExample string `json:"log-config-example,readonly" usage:"生成日志配置示例选项"`
 }
 
 type Module interface {
@@ -34,22 +32,26 @@ type Runner interface {
 }
 
 type framework struct {
-	options Options
-	modules []Module
-	flags   values
-	configs values
+	commandLine *flag.FlagSet
+	options     Options
+	modules     []Module
+	flags       values
+	configs     values
 }
 
 func (f *framework) parseCommandLine() (err error) {
-	if err = flags.Setup(CommandLine, &f.options, "", ""); err != nil {
+	if f.commandLine == nil {
+		f.commandLine = flag.CommandLine
+	}
+	if err = flags.Setup(f.commandLine, &f.options, "", ""); err != nil {
 		return err
 	}
 	for module, opts := range f.flags {
-		if err = flags.Setup(CommandLine, opts, module, ""); err != nil {
+		if err = flags.Setup(f.commandLine, opts, module, ""); err != nil {
 			return err
 		}
 	}
-	return CommandLine.Parse(os.Args[1:])
+	return f.commandLine.Parse(os.Args[1:])
 }
 
 func (f *framework) doCommandLine() (err error) {
@@ -161,6 +163,14 @@ func (f *framework) Main() {
 	}
 }
 
+func (f *framework) SetCommandLine(commandLine *flag.FlagSet) {
+	f.commandLine = commandLine
+}
+
+func (f *framework) SetOptions(opts Options) {
+	f.options = opts
+}
+
 func (f *framework) Register(m Module, opts interface{}, cfg interface{}) {
 	for _, v := range f.modules {
 		if v.Name() == m.Name() {
@@ -192,6 +202,14 @@ var f = &framework{}
 
 func Main() {
 	f.Main()
+}
+
+func SetCommandLine(commandLine *flag.FlagSet) {
+	f.SetCommandLine(commandLine)
+}
+
+func SetOptions(opts Options) {
+	f.SetOptions(opts)
 }
 
 func Register(m Module, opts interface{}, cfg interface{}) {
