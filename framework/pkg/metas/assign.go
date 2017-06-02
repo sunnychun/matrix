@@ -1,9 +1,11 @@
-package meta
+package metas
 
 import (
 	"fmt"
 	"reflect"
 	"runtime"
+
+	"github.com/ironzhang/matrix/framework/pkg/tags"
 )
 
 type assignError struct {
@@ -32,10 +34,9 @@ func typeFields(t reflect.Type) fields {
 		sf := t.Field(i)
 		name = sf.Name
 		readonly = false
-		tag := sf.Tag.Get("json")
-		if tag != "" {
-			var opts tagOptions
-			name, opts = parseTag(tag)
+		if tag := sf.Tag.Get("json"); tag != "" {
+			var opts tags.TagOptions
+			name, opts = tags.ParseTag(tag)
 			readonly = opts.Contains("readonly")
 		}
 		fs[name] = field{name: name, index: sf.Index, typ: sf.Type, readonly: readonly}
