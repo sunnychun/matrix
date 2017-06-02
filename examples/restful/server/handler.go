@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"net/url"
 
 	"github.com/ironzhang/matrix/restful"
 )
@@ -18,17 +19,25 @@ func NewHTTPHandler() (http.Handler, error) {
 	if err = m.Post("/echo", h.Echo); err != nil {
 		return nil, err
 	}
+	if err = m.Get("/hello/:name", h.Hello); err != nil {
+		return nil, err
+	}
 	return m, nil
 }
 
 type handlers struct{}
 
-func (h *handlers) Root(ctx context.Context, req interface{}, resp *string) error {
+func (h *handlers) Root(ctx context.Context, values url.Values, req interface{}, resp *string) error {
 	*resp = "hello, restful"
 	return nil
 }
 
-func (h *handlers) Echo(ctx context.Context, req string, resp *string) error {
+func (h *handlers) Echo(ctx context.Context, values url.Values, req string, resp *string) error {
 	*resp = req
+	return nil
+}
+
+func (h *handlers) Hello(ctx context.Context, values url.Values, req interface{}, resp *string) error {
+	*resp = values.Get(":name")
 	return nil
 }
