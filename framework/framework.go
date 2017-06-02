@@ -2,15 +2,26 @@ package framework
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"os/signal"
 	"sync"
 	"time"
 
-	"github.com/ironzhang/matrix/framework/config"
+	"github.com/ironzhang/matrix/framework/pkg/flags"
+	"github.com/ironzhang/matrix/jsoncfg"
 	"github.com/ironzhang/matrix/tlog"
 )
+
+var CommandLine = flag.CommandLine
+
+type Options struct {
+	ConfigFile       string `json:"config-file" usage:"指定配置文件选项"`
+	ConfigExample    string `json:"config-example" usage:"生成配置示例选项"`
+	LogConfigFile    string `json:"log-config-file" usage:"指定日志配置文件选项"`
+	LogConfigExample string `json:"log-config-example" usage:"生成日志配置示例选项"`
+}
 
 type Module interface {
 	Name() string
@@ -23,26 +34,36 @@ type Runner interface {
 }
 
 type framework struct {
-	options options
-	configs config.ConfigSet
+	options Options
 	modules []Module
+	flags   values
+	configs values
 }
 
-func (f *framework) doCommandLine() {
-	var err error
+func (f *framework) parseCommandLine() (err error) {
+	if err = flags.Setup(CommandLine, &f.options, "", ""); err != nil {
+		return err
+	}
+	for module, opts := range f.flags {
+		if err = flags.Setup(CommandLine, opts, module, ""); err != nil {
+			return err
+		}
+	}
+	return CommandLine.Parse(os.Args[1:])
+}
+
+func (f *framework) doCommandLine() (err error) {
 	var quit bool
 
 	if f.options.ConfigExample != "" {
-		if err = f.configs.WriteToFile(f.options.ConfigExample); err != nil {
-			fmt.Fprintf(os.Stderr, "generate config example: %v\n", err)
-			os.Exit(3)
+		if jsoncfg.WriteToFile(f.options.ConfigExample, f.configs); err != nil {
+			return fmt.Errorf("generate config example: %v", err)
 		}
 		quit = true
 	}
 	if f.options.LogConfigExample != "" {
-		if err = tlogWriteToFile(f.options.LogConfigExample); err != nil {
-			fmt.Fprintf(os.Stderr, "generate log config example: %v\n", err)
-			os.Exit(3)
+		if err = jsoncfg.WriteToFile(f.options.LogConfigExample, tlog.Config{}); err != nil {
+			return fmt.Errorf("generate log config example: %v", err)
 		}
 		quit = true
 	}
@@ -50,6 +71,8 @@ func (f *framework) doCommandLine() {
 	if quit {
 		os.Exit(0)
 	}
+
+	return nil
 }
 
 func (f *framework) main() (err error) {
@@ -104,21 +127,29 @@ func (f *framework) main() (err error) {
 
 func (f *framework) Main() {
 	var err error
-	f.options.Parse()
-	f.doCommandLine()
 
-	// load config
-	if f.options.ConfigFile != "" {
-		if err = f.configs.LoadFromFile(f.options.ConfigFile); err != nil {
-			fmt.Fprintf(os.Stderr, "load config: %v\n", err)
-			os.Exit(3)
-		}
+	// parse command line
+	if err = f.parseCommandLine(); err != nil {
+		fmt.Fprintf(os.Stderr, "parse command line: %v\n", err)
+		os.Exit(3)
 	}
 
-	// tlog load from file
-	log, err := tlogLoadFromFile(f.options.LogConfigFile)
+	// do command line
+	if err = f.doCommandLine(); err != nil {
+		fmt.Fprintf(os.Stderr, "do command line: %v\n", err)
+		os.Exit(3)
+	}
+
+	// load app config
+	if err = loadAppConfig(f.configs, f.options.ConfigFile); err != nil {
+		fmt.Fprintf(os.Stderr, "load app config: %v\n", err)
+		os.Exit(3)
+	}
+
+	// load log config
+	log, err := loadLogConfig(f.options.LogConfigFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "tlog load from file: %v\n", err)
+		fmt.Fprintf(os.Stderr, "load log config: %v\n", err)
 		os.Exit(3)
 	}
 	defer log.Sync()
@@ -130,7 +161,7 @@ func (f *framework) Main() {
 	}
 }
 
-func (f *framework) Register(m Module, config interface{}) {
+func (f *framework) Register(m Module, opts interface{}, cfg interface{}) {
 	for _, v := range f.modules {
 		if v.Name() == m.Name() {
 			panic(fmt.Sprintf("module(%s) duplicate", m.Name()))
@@ -138,15 +169,23 @@ func (f *framework) Register(m Module, config interface{}) {
 	}
 	f.modules = append(f.modules, m)
 
-	if config != nil {
-		if err := f.configs.Register(m.Name(), config); err != nil {
+	if opts != nil {
+		if f.flags == nil {
+			f.flags = make(values)
+		}
+		if err := f.flags.Register(m.Name(), opts); err != nil {
 			panic(err)
 		}
 	}
-}
 
-func (f *framework) ModuleConfig(m string) (interface{}, bool) {
-	return f.configs.Config(m)
+	if cfg != nil {
+		if f.configs == nil {
+			f.configs = make(values)
+		}
+		if err := f.configs.Register(m.Name(), cfg); err != nil {
+			panic(err)
+		}
+	}
 }
 
 var f = &framework{}
@@ -155,10 +194,6 @@ func Main() {
 	f.Main()
 }
 
-func Register(m Module, config interface{}) {
-	f.Register(m, config)
-}
-
-func ModuleConfig(m string) (interface{}, bool) {
-	return f.ModuleConfig(m)
+func Register(m Module, cfg interface{}) {
+	f.Register(m, nil, cfg)
 }

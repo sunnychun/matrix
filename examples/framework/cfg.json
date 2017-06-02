@@ -1,6 +1,6 @@
 {
 	"backend-module": {
-		"Addr": ":6060"
+		"Addr": ":6061"
 	},
 	"etcd-module": {
 		"endpoints": [
