@@ -19,7 +19,7 @@ type M struct {
 }
 
 func (m *M) Name() string {
-	return "debug-module"
+	return "pprof-module"
 }
 
 func (m *M) Init() error {
