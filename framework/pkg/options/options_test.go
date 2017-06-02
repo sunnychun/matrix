@@ -5,45 +5,6 @@ import (
 	"testing"
 )
 
-func TestValue(t *testing.T) {
-	var i int
-	var i8 int8
-	var i16 int16
-	var i32 int32
-	var i64 int64
-
-	CommandLine.Var(newIntValue(reflect.ValueOf(&i).Elem()), "int", "usage")
-	CommandLine.Var(newIntValue(reflect.ValueOf(&i8).Elem()), "int8", "usage")
-	CommandLine.Var(newIntValue(reflect.ValueOf(&i16).Elem()), "int16", "usage")
-	CommandLine.Var(newIntValue(reflect.ValueOf(&i32).Elem()), "int32", "usage")
-	CommandLine.Var(newIntValue(reflect.ValueOf(&i64).Elem()), "int64", "usage")
-
-	args := []string{
-		"-int", "1",
-		"-int8", "8",
-		"-int16", "16",
-		"-int32", "32",
-		"-int64", "64",
-	}
-	CommandLine.Parse(args)
-
-	if got, want := i, 1; got != want {
-		t.Errorf("i: %d != %d", got, want)
-	}
-	if got, want := i8, int8(8); got != want {
-		t.Errorf("i8: %d != %d", got, want)
-	}
-	if got, want := i16, int16(16); got != want {
-		t.Errorf("i16: %d != %d", got, want)
-	}
-	if got, want := i32, int32(32); got != want {
-		t.Errorf("i32: %d != %d", got, want)
-	}
-	if got, want := i64, int64(64); got != want {
-		t.Errorf("i64: %d != %d", got, want)
-	}
-}
-
 func TestSetup(t *testing.T) {
 	type T1 struct {
 		A int
