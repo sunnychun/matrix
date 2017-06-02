@@ -1,4 +1,4 @@
-package config_module
+package dashboard_module
 
 import (
 	"testing"

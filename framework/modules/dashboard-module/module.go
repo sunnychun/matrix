@@ -1,4 +1,4 @@
-package config_module
+package dashboard_module
 
 import (
 	"github.com/ironzhang/matrix/framework"
@@ -9,14 +9,14 @@ import (
 var Module = &M{}
 
 func init() {
-	framework.Register(Module, nil)
+	framework.Register(Module, nil, nil)
 }
 
 type M struct {
 }
 
 func (m *M) Name() string {
-	return "config-module"
+	return "dashboard-module"
 }
 
 func (m *M) Init() (err error) {

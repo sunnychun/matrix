@@ -1,9 +1,8 @@
-package config_module
+package dashboard_module
 
 import (
 	"context"
 
-	"github.com/ironzhang/matrix/framework"
 	"github.com/ironzhang/matrix/restful"
 )
 
@@ -18,14 +17,7 @@ func (h *handlers) Register(m *restful.ServeMux) error {
 	return restful.Register(m, apis)
 }
 
-func (h *handlers) GetConfig(ctx context.Context, req []string, resp *map[string]interface{}) error {
-	m := make(map[string]interface{})
-	for _, module := range req {
-		if config, ok := framework.ModuleConfig(module); ok {
-			m[module] = config
-		}
-	}
-	*resp = m
+func (h *handlers) GetConfig(ctx context.Context, req interface{}, resp *interface{}) error {
 	return nil
 }
 
