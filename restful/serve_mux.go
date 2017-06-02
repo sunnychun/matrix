@@ -8,7 +8,6 @@ import (
 	"net/http/httputil"
 	"os"
 	"strings"
-	"sync"
 
 	"github.com/ironzhang/matrix/codes"
 	"github.com/ironzhang/matrix/context-value"
@@ -18,43 +17,22 @@ import (
 	"github.com/ironzhang/matrix/uuid"
 )
 
-type entry struct {
-	mu sync.RWMutex
-	m  map[string]*handler
-}
-
-func (e *entry) AddHandler(meth string, h *handler) {
-	meth = strings.ToUpper(meth)
-	e.mu.Lock()
-	e.m[meth] = h
-	e.mu.Unlock()
-}
-
-func (e *entry) GetHandler(meth string) (*handler, bool) {
-	meth = strings.ToUpper(meth)
-	e.mu.RLock()
-	h, ok := e.m[meth]
-	e.mu.RUnlock()
-	return h, ok
-}
-
 func NewServeMux(c codec.Codec) *ServeMux {
 	if c == nil {
 		c = codec.DefaultCodec
 	}
 	return &ServeMux{
-		verbose: 1,
-		codec:   c,
-		entrys:  make(map[string]*entry),
+		verbose:  1,
+		codec:    c,
+		patterns: make([]*pattern, 0),
 	}
 }
 
 type ServeMux struct {
-	w       io.Writer
-	verbose int
-	codec   codec.Codec
-	mu      sync.RWMutex
-	entrys  map[string]*entry
+	w        io.Writer
+	verbose  int
+	codec    codec.Codec
+	patterns []*pattern
 }
 
 // SetVerbose 设置verbose级别
@@ -102,7 +80,16 @@ func (m *ServeMux) Add(meth, pat string, i interface{}) error {
 	if err != nil {
 		return fmt.Errorf("parse handler: %v", err)
 	}
-	m.addEntry(pat).AddHandler(meth, h)
+
+	for _, p := range m.patterns {
+		if p.pat == pat {
+			p.add(meth, h)
+			return nil
+		}
+	}
+	p := newPattern(pat)
+	p.add(meth, h)
+	m.patterns = append(m.patterns, p)
 	return nil
 }
 
@@ -126,17 +113,29 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (m *ServeMux) serveHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	log := tlog.WithContext(ctx).Sugar().With("method", r.Method, "path", r.URL.Path)
-	e, ok := m.getEntry(r.URL.Path)
-	if !ok {
+
+	var found bool
+	for _, p := range m.patterns {
+		values, ok := p.try(r.URL.Path)
+		if !ok {
+			continue
+		}
+		found = true
+		h, ok := p.get(r.Method)
+		if !ok {
+			continue
+		}
+		r.URL.RawQuery = values.Encode() + "&" + r.URL.RawQuery
+		return m.serve(ctx, h, w, r)
+	}
+
+	if found {
+		log.Info(http.StatusText(http.StatusMethodNotAllowed))
+		return Errorf(http.StatusMethodNotAllowed, codes.NotAllowed, "method(%s) not allowed", r.Method)
+	} else {
 		log.Info(http.StatusText(http.StatusNotFound))
 		return Errorf(http.StatusNotFound, codes.NotFound, "page(%s) not found", r.URL.Path)
 	}
-	h, ok := e.GetHandler(r.Method)
-	if !ok {
-		log.Info(http.StatusText(http.StatusMethodNotAllowed))
-		return Errorf(http.StatusMethodNotAllowed, codes.NotAllowed, "method(%s) not allowed", r.Method)
-	}
-	return m.serve(ctx, h, w, r)
 }
 
 func (m *ServeMux) serve(ctx context.Context, h *handler, w http.ResponseWriter, r *http.Request) (err error) {
@@ -193,24 +192,6 @@ func (m *ServeMux) setError(w http.ResponseWriter, err error) {
 	w.Header().Set("Content-Type", m.codec.ContentType())
 	w.WriteHeader(status)
 	m.codec.EncodeError(w, e)
-}
-
-func (m *ServeMux) addEntry(pat string) *entry {
-	m.mu.Lock()
-	e, ok := m.entrys[pat]
-	if !ok {
-		e = &entry{m: make(map[string]*handler)}
-		m.entrys[pat] = e
-	}
-	m.mu.Unlock()
-	return e
-}
-
-func (m *ServeMux) getEntry(pat string) (*entry, bool) {
-	m.mu.RLock()
-	e, ok := m.entrys[pat]
-	m.mu.RUnlock()
-	return e, ok
 }
 
 func (m *ServeMux) writer() io.Writer {

@@ -104,7 +104,7 @@ func CallArith(m *ServeMux, method, path string, a, b int) (c int, err error) {
 	return reply.C, nil
 }
 
-func TestArithServeMux(t *testing.T) {
+func TestArithServeMuxReturnNil(t *testing.T) {
 	tlog.Reset()
 
 	m, err := NewArithServeMux()
