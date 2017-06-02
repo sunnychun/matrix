@@ -16,7 +16,7 @@ var Config = &C{
 var Module = &M{}
 
 func init() {
-	framework.Register(Module, Config)
+	framework.Register(Module, nil, Config)
 }
 
 type C struct {

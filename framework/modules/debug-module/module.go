@@ -12,7 +12,7 @@ import (
 var Module = &M{}
 
 func init() {
-	framework.Register(Module, nil)
+	framework.Register(Module, nil, nil)
 }
 
 type M struct {

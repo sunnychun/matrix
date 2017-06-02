@@ -8,10 +8,16 @@ import (
 	_ "github.com/ironzhang/matrix/framework/modules/micro-module"
 )
 
+var Options = &O{}
+
 var Module = &M{}
 
 func init() {
-	framework.Register(Module, nil)
+	framework.Register(Module, Options, nil)
+}
+
+type O struct {
+	Addr string `json:",readonly" usage:"指定监听地址"`
 }
 
 type M struct {

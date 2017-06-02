@@ -194,6 +194,6 @@ func Main() {
 	f.Main()
 }
 
-func Register(m Module, cfg interface{}) {
-	f.Register(m, nil, cfg)
+func Register(m Module, opts interface{}, cfg interface{}) {
+	f.Register(m, opts, cfg)
 }

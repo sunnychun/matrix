@@ -16,7 +16,7 @@ var Config = &clientv3.Config{
 var Module = &M{}
 
 func init() {
-	framework.Register(Module, Config)
+	framework.Register(Module, nil, Config)
 }
 
 type M struct {
