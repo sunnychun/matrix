@@ -34,9 +34,9 @@ type Runner interface {
 type framework struct {
 	commandLine *flag.FlagSet
 	options     Options
+	flags       Values
+	configs     Values
 	modules     []Module
-	flags       values
-	configs     values
 }
 
 func (f *framework) parseCommandLine() (err error) {
@@ -163,14 +163,6 @@ func (f *framework) Main() {
 	}
 }
 
-func (f *framework) SetCommandLine(commandLine *flag.FlagSet) {
-	f.commandLine = commandLine
-}
-
-func (f *framework) SetOptions(opts Options) {
-	f.options = opts
-}
-
 func (f *framework) Register(m Module, opts interface{}, cfg interface{}) {
 	for _, v := range f.modules {
 		if v.Name() == m.Name() {
@@ -181,18 +173,18 @@ func (f *framework) Register(m Module, opts interface{}, cfg interface{}) {
 
 	if opts != nil {
 		if f.flags == nil {
-			f.flags = make(values)
+			f.flags = make(Values)
 		}
-		if err := f.flags.Register(m.Name(), opts); err != nil {
+		if err := f.flags.register(m.Name(), opts); err != nil {
 			panic(err)
 		}
 	}
 
 	if cfg != nil {
 		if f.configs == nil {
-			f.configs = make(values)
+			f.configs = make(Values)
 		}
-		if err := f.configs.Register(m.Name(), cfg); err != nil {
+		if err := f.configs.register(m.Name(), cfg); err != nil {
 			panic(err)
 		}
 	}
@@ -204,14 +196,22 @@ func Main() {
 	f.Main()
 }
 
+func Register(m Module, opts interface{}, cfg interface{}) {
+	f.Register(m, opts, cfg)
+}
+
 func SetCommandLine(commandLine *flag.FlagSet) {
-	f.SetCommandLine(commandLine)
+	f.commandLine = commandLine
 }
 
 func SetOptions(opts Options) {
-	f.SetOptions(opts)
+	f.options = opts
 }
 
-func Register(m Module, opts interface{}, cfg interface{}) {
-	f.Register(m, opts, cfg)
+func Flags() Values {
+	return f.flags
+}
+
+func Configs() Values {
+	return f.configs
 }

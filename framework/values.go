@@ -5,9 +5,9 @@ import (
 	"reflect"
 )
 
-type values map[string]interface{}
+type Values map[string]interface{}
 
-func (values values) Register(name string, value interface{}) error {
+func (values Values) register(name string, value interface{}) error {
 	rv := reflect.ValueOf(value)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return fmt.Errorf("value invalid: %s, %T", name, value)

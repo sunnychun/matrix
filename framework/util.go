@@ -16,7 +16,7 @@ func (bs *byteSlice) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func loadAppConfig(configs values, file string) (err error) {
+func loadAppConfig(configs Values, file string) (err error) {
 	if file == "" {
 		return nil
 	}
