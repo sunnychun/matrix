@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"sync"
 	"testing"
 
@@ -36,22 +37,22 @@ type Reply struct {
 
 type Arith int
 
-func (t *Arith) Add(ctx context.Context, args Args, reply *Reply) error {
+func (t *Arith) Add(ctx context.Context, values url.Values, args Args, reply *Reply) error {
 	reply.C = args.A + args.B
 	return nil
 }
 
-func (t *Arith) Sub(ctx context.Context, args Args, reply *Reply) error {
+func (t *Arith) Sub(ctx context.Context, values url.Values, args Args, reply *Reply) error {
 	reply.C = args.A - args.B
 	return nil
 }
 
-func (t *Arith) Mul(ctx context.Context, args *Args, reply *Reply) error {
+func (t *Arith) Mul(ctx context.Context, values url.Values, args *Args, reply *Reply) error {
 	reply.C = args.A * args.B
 	return nil
 }
 
-func (t *Arith) Div(ctx context.Context, args Args, reply *Reply) error {
+func (t *Arith) Div(ctx context.Context, values url.Values, args Args, reply *Reply) error {
 	if args.B == 0 {
 		return errors.New("divide by zero")
 	}
@@ -163,27 +164,27 @@ func TestArithServeMuxReturnErr(t *testing.T) {
 
 type Tester struct{}
 
-func (t Tester) ReturnNil(ctx context.Context, req interface{}, resp interface{}) error {
+func (t Tester) ReturnNil(ctx context.Context, values url.Values, req interface{}, resp interface{}) error {
 	return nil
 }
 
-func (t Tester) ReturnDecodeFailError(ctx context.Context, req int, resp interface{}) error {
+func (t Tester) ReturnDecodeFailError(ctx context.Context, values url.Values, req int, resp interface{}) error {
 	return nil
 }
 
-func (t Tester) ReturnUnknownError(ctx context.Context, req interface{}, resp interface{}) error {
+func (t Tester) ReturnUnknownError(ctx context.Context, values url.Values, req interface{}, resp interface{}) error {
 	return errors.New("unknown")
 }
 
-func (t Tester) ReturnInternalError(ctx context.Context, req interface{}, resp interface{}) error {
+func (t Tester) ReturnInternalError(ctx context.Context, values url.Values, req interface{}, resp interface{}) error {
 	return Errorf(http.StatusInternalServerError, codes.Internal, "internal error")
 }
 
-func (t Tester) ReturnInvalidParamError(ctx context.Context, req interface{}, resp interface{}) error {
+func (t Tester) ReturnInvalidParamError(ctx context.Context, values url.Values, req interface{}, resp interface{}) error {
 	return NewError(http.StatusBadRequest, codes.InvalidParam)
 }
 
-func (t Tester) ReturnOutOfRangeErrorWithCause(ctx context.Context, req interface{}, resp interface{}) error {
+func (t Tester) ReturnOutOfRangeErrorWithCause(ctx context.Context, values url.Values, req interface{}, resp interface{}) error {
 	return Errorf(http.StatusInternalServerError, codes.OutOfRange, "out of range")
 }
 

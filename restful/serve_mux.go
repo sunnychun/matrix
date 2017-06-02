@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"os"
 	"strings"
 
@@ -116,7 +117,7 @@ func (m *ServeMux) serveHTTP(ctx context.Context, w http.ResponseWriter, r *http
 
 	var found bool
 	for _, p := range m.patterns {
-		values, ok := p.try(r.URL.Path)
+		v, ok := p.try(r.URL.Path)
 		if !ok {
 			continue
 		}
@@ -125,8 +126,7 @@ func (m *ServeMux) serveHTTP(ctx context.Context, w http.ResponseWriter, r *http
 		if !ok {
 			continue
 		}
-		r.URL.RawQuery = values.Encode() + "&" + r.URL.RawQuery
-		return m.serve(ctx, h, w, r)
+		return m.serve(ctx, h, v, w, r)
 	}
 
 	if found {
@@ -138,7 +138,7 @@ func (m *ServeMux) serveHTTP(ctx context.Context, w http.ResponseWriter, r *http
 	}
 }
 
-func (m *ServeMux) serve(ctx context.Context, h *handler, w http.ResponseWriter, r *http.Request) (err error) {
+func (m *ServeMux) serve(ctx context.Context, h *handler, v url.Values, w http.ResponseWriter, r *http.Request) (err error) {
 	log := tlog.WithContext(ctx).Sugar().With("method", r.Method, "path", r.URL.Path)
 
 	// check Content-Type
@@ -147,12 +147,12 @@ func (m *ServeMux) serve(ctx context.Context, h *handler, w http.ResponseWriter,
 		return Errorf(http.StatusBadRequest, codes.InvalidHeader, err.Error())
 	}
 
-	in1 := newReflectValue(h.in1Type)
-	in2 := newReflectValue(h.in2Type)
+	args := newReflectValue(h.args)
+	reply := newReflectValue(h.reply)
 
 	// Decode
-	if !isNilInterface(h.in1Type) {
-		if err = m.codec.Decode(r.Body, in1.Interface()); err != nil {
+	if !isNilInterface(h.args) {
+		if err = m.codec.Decode(r.Body, args.Interface()); err != nil {
 			log.Infow("decode", "error", err)
 			return Errorf(http.StatusBadRequest, codes.DecodeFail, err.Error())
 		}
@@ -163,15 +163,15 @@ func (m *ServeMux) serve(ctx context.Context, h *handler, w http.ResponseWriter,
 	ctx = context_value.WithResponseWriter(ctx, w)
 
 	// Handle
-	if err = h.Handle(ctx, in1, in2); err != nil {
+	if err = h.Handle(ctx, v, args, reply); err != nil {
 		log.Infow("handle", "error", err)
 		return err
 	}
 
 	// Encode
-	if !isNilInterface(h.in2Type) {
+	if !isNilInterface(h.reply) {
 		w.Header().Set("Content-Type", m.codec.ContentType())
-		if err = m.codec.Encode(w, in2.Interface()); err != nil {
+		if err = m.codec.Encode(w, reply.Interface()); err != nil {
 			log.Errorw("encode", "error", err)
 			return Errorf(http.StatusInternalServerError, codes.EncodeFail, err.Error())
 		}

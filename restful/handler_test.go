@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"net/url"
 	"reflect"
 	"testing"
 	"time"
@@ -79,13 +80,15 @@ func TestCheckIns(t *testing.T) {
 		func(interface{}) {},
 		func(interface{}, interface{}) {},
 		func(interface{}, interface{}, interface{}) {},
-		func(Context, bStruct, interface{}) {},
-		func(Context, interface{}, int) {},
-		func(Context, interface{}, AStruct) {},
-		func(Context, interface{}, *bStruct) {},
+		func(interface{}, interface{}, interface{}, interface{}) {},
+		func(Context, interface{}, interface{}, interface{}) {},
+		func(Context, url.Values, bStruct, interface{}) {},
+		func(Context, url.Values, interface{}, int) {},
+		func(Context, url.Values, interface{}, AStruct) {},
+		func(Context, url.Values, interface{}, *bStruct) {},
 	}
 	for i, f := range wrongs {
-		if _, _, _, err := checkIns(reflect.TypeOf(f)); err == nil {
+		if _, _, _, _, err := checkIns(reflect.TypeOf(f)); err == nil {
 			t.Errorf("wrongs[%d]: checkIns %T, expect error but not", i, f)
 		} else {
 			t.Logf("wrongs[%d]: checkIns: %v", i, err)
@@ -93,17 +96,17 @@ func TestCheckIns(t *testing.T) {
 	}
 
 	rights := []interface{}{
-		func(context.Context, interface{}, interface{}) {},
-		func(Context, interface{}, interface{}) {},
-		func(Context, int, interface{}) {},
-		func(Context, *int, interface{}) {},
-		func(Context, AStruct, interface{}) {},
-		func(Context, *AStruct, interface{}) {},
-		func(Context, interface{}, *int) {},
-		func(Context, interface{}, *AStruct) {},
+		func(context.Context, url.Values, interface{}, interface{}) {},
+		func(Context, url.Values, interface{}, interface{}) {},
+		func(Context, url.Values, int, interface{}) {},
+		func(Context, url.Values, *int, interface{}) {},
+		func(Context, url.Values, AStruct, interface{}) {},
+		func(Context, url.Values, *AStruct, interface{}) {},
+		func(Context, url.Values, interface{}, *int) {},
+		func(Context, url.Values, interface{}, *AStruct) {},
 	}
 	for i, f := range rights {
-		in0, in1, in2, err := checkIns(reflect.TypeOf(f))
+		in0, in1, in2, in3, err := checkIns(reflect.TypeOf(f))
 		if err != nil {
 			t.Errorf("rights[%d]: checkIns: %v", i, err)
 		}
@@ -115,6 +118,9 @@ func TestCheckIns(t *testing.T) {
 		}
 		if in2 != reflect.TypeOf(f).In(2) {
 			t.Errorf("rights[%d]: in2: %s != %s", i, in2, reflect.TypeOf(f).In(2))
+		}
+		if in3 != reflect.TypeOf(f).In(3) {
+			t.Errorf("rights[%d]: in3: %s != %s", i, in2, reflect.TypeOf(f).In(2))
 		}
 	}
 }
@@ -145,9 +151,9 @@ func TestCheckOuts(t *testing.T) {
 
 func TestParseHandler(t *testing.T) {
 	rights := []interface{}{
-		func(context.Context, interface{}, interface{}) error { return nil },
-		func(context.Context, AStruct, interface{}) error { return nil },
-		func(Context, *AStruct, *AStruct) error { return nil },
+		func(context.Context, url.Values, interface{}, interface{}) error { return nil },
+		func(context.Context, url.Values, AStruct, interface{}) error { return nil },
+		func(Context, url.Values, *AStruct, *AStruct) error { return nil },
 	}
 	for i, f := range rights {
 		h, err := parseHandler(f)
@@ -159,12 +165,12 @@ func TestParseHandler(t *testing.T) {
 			t.Errorf("rights[%d]: value: %v != %v", i, h.value, reflect.ValueOf(f))
 			continue
 		}
-		if h.in1Type != reflect.TypeOf(f).In(1) {
-			t.Errorf("rights[%d]: in1 type: %s != %s", i, h.in1Type, reflect.TypeOf(f).In(1))
+		if h.args != reflect.TypeOf(f).In(2) {
+			t.Errorf("rights[%d]: args type: %s != %s", i, h.args, reflect.TypeOf(f).In(1))
 			continue
 		}
-		if h.in2Type != reflect.TypeOf(f).In(2) {
-			t.Errorf("rights[%d]: in2 type: %s != %s", i, h.in2Type, reflect.TypeOf(f).In(2))
+		if h.reply != reflect.TypeOf(f).In(3) {
+			t.Errorf("rights[%d]: reply type: %s != %s", i, h.reply, reflect.TypeOf(f).In(2))
 			continue
 		}
 	}
@@ -172,14 +178,14 @@ func TestParseHandler(t *testing.T) {
 
 func TestHandleReturnNil(t *testing.T) {
 	tests := []interface{}{
-		func(context.Context, interface{}, interface{}) error { return nil },
-		func(Context, interface{}, interface{}) error { return nil },
-		func(Context, int, interface{}) error { return nil },
-		func(Context, *int, interface{}) error { return nil },
-		func(Context, AStruct, interface{}) error { return nil },
-		func(Context, *AStruct, interface{}) error { return nil },
-		func(Context, interface{}, *int) error { return nil },
-		func(Context, interface{}, *AStruct) error { return nil },
+		func(context.Context, url.Values, interface{}, interface{}) error { return nil },
+		func(Context, url.Values, interface{}, interface{}) error { return nil },
+		func(Context, url.Values, int, interface{}) error { return nil },
+		func(Context, url.Values, *int, interface{}) error { return nil },
+		func(Context, url.Values, AStruct, interface{}) error { return nil },
+		func(Context, url.Values, *AStruct, interface{}) error { return nil },
+		func(Context, url.Values, interface{}, *int) error { return nil },
+		func(Context, url.Values, interface{}, *AStruct) error { return nil },
 	}
 	for i, f := range tests {
 		h, err := parseHandler(f)
@@ -187,7 +193,7 @@ func TestHandleReturnNil(t *testing.T) {
 			t.Errorf("tests[%d]: parse handler: %v", i, err)
 			continue
 		}
-		err = h.Handle(context.Background(), newReflectValue(h.in1Type), newReflectValue(h.in2Type))
+		err = h.Handle(context.Background(), nil, newReflectValue(h.args), newReflectValue(h.reply))
 		if err != nil {
 			t.Errorf("tests[%d]: handle: %v", i, err)
 			continue
@@ -196,12 +202,12 @@ func TestHandleReturnNil(t *testing.T) {
 }
 
 func TestHandleReturnErr(t *testing.T) {
-	f := func(context.Context, interface{}, interface{}) error { return io.EOF }
+	f := func(context.Context, url.Values, interface{}, interface{}) error { return io.EOF }
 	h, err := parseHandler(f)
 	if err != nil {
 		t.Fatalf("parse handler: %v", err)
 	}
-	err = h.Handle(context.Background(), newReflectValue(h.in1Type), newReflectValue(h.in2Type))
+	err = h.Handle(context.Background(), nil, newReflectValue(h.args), newReflectValue(h.reply))
 	if err != io.EOF {
 		t.Errorf("err: %v != %v", err, io.EOF)
 	}
@@ -216,7 +222,7 @@ func TestHandler(t *testing.T) {
 	}
 
 	var calls int
-	f := func(ctx context.Context, req *Request, resp *Response) error {
+	f := func(ctx context.Context, values url.Values, req *Request, resp *Response) error {
 		calls++
 		resp.C = req.A + req.B
 		return nil
@@ -230,7 +236,7 @@ func TestHandler(t *testing.T) {
 	var resp Response
 	req.A = 1
 	req.B = 2
-	if err = h.Handle(context.Background(), reflect.ValueOf(&req), reflect.ValueOf(&resp)); err != nil {
+	if err = h.Handle(context.Background(), nil, reflect.ValueOf(&req), reflect.ValueOf(&resp)); err != nil {
 		t.Fatalf("handle: %v", err)
 	}
 	if calls != 1 {
@@ -242,15 +248,15 @@ func TestHandler(t *testing.T) {
 }
 
 func TestIsNilInterface(t *testing.T) {
-	f := func(context.Context, interface{}, interface{}) error { return io.EOF }
+	f := func(context.Context, url.Values, interface{}, interface{}) error { return io.EOF }
 	h, err := parseHandler(f)
 	if err != nil {
 		t.Fatalf("parse handler: %v", err)
 	}
-	if got, want := isNilInterface(h.in1Type), true; got != want {
+	if got, want := isNilInterface(h.args), true; got != want {
 		t.Errorf("in1: got(%t) != want(%t)", got, want)
 	}
-	if got, want := isNilInterface(h.in2Type), true; got != want {
+	if got, want := isNilInterface(h.reply), true; got != want {
 		t.Errorf("in2: got(%t) != want(%t)", got, want)
 	}
 
