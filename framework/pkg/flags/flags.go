@@ -55,7 +55,7 @@ func (f flags) SetupValue(name, usage string, v reflect.Value) {
 		}
 		f.SetupStruct(name, usage, v)
 	default:
-		panic(errs.ErrorAt("options.SetupValue", fmt.Errorf("unsupport %s kind", k)))
+		panic(errs.ErrorAt("flags.SetupValue", fmt.Errorf("unsupport %s kind", k)))
 	}
 }
 
