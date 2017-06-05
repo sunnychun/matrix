@@ -1,21 +1,13 @@
-package metas
+package assign
 
 import (
 	"fmt"
 	"reflect"
 	"runtime"
 
+	"github.com/ironzhang/matrix/errs"
 	"github.com/ironzhang/matrix/framework/pkg/tags"
 )
-
-type assignError struct {
-	Method string
-	Reason string
-}
-
-func (e assignError) Error() string {
-	return fmt.Sprintf("%s: %s", e.Method, e.Reason)
-}
 
 type field struct {
 	name     string
@@ -26,18 +18,32 @@ type field struct {
 
 type fields map[string]field
 
+func parseTag(tag reflect.StructTag) (string, bool) {
+	if s := tag.Get("json"); s != "" {
+		name, opts := tags.ParseTag(s)
+		if !tags.IsValidTag(name) {
+			return "", opts.Contains("readonly")
+		}
+		return name, opts.Contains("readonly")
+	}
+	return "", false
+}
+
 func typeFields(t reflect.Type) fields {
-	var name string
-	var readonly bool
 	fs := make(fields)
 	for i := 0; i < t.NumField(); i++ {
 		sf := t.Field(i)
-		name = sf.Name
-		readonly = false
-		if tag := sf.Tag.Get("json"); tag != "" {
-			var opts tags.TagOptions
-			name, opts = tags.ParseTag(tag)
-			readonly = opts.Contains("readonly")
+		if sf.PkgPath != "" && !sf.Anonymous { // unexported
+			continue
+		}
+
+		name := sf.Name
+		tname, readonly := parseTag(sf.Tag)
+		if tname != "" {
+			name = tname
+		}
+		if name == "-" {
+			continue
 		}
 		fs[name] = field{name: name, index: sf.Index, typ: sf.Type, readonly: readonly}
 	}
@@ -53,7 +59,7 @@ func floatAssign(x reflect.Value, f float64) {
 	case reflect.Float32, reflect.Float64:
 		x.SetFloat(f)
 	default:
-		panic(assignError{"config.floatAssign", fmt.Sprintf("unsupport %s kind", kind)})
+		panic(errs.ErrorAt("floatAssign", fmt.Errorf("unsupport %s kind", kind)))
 	}
 }
 
@@ -78,7 +84,7 @@ func mapAssign(x reflect.Value, m map[string]interface{}) {
 			valueAssign(x.FieldByIndex(f.index), v)
 		}
 	default:
-		panic(assignError{"config.mapAssign", fmt.Sprintf("unsupport %s kind", kind)})
+		panic(errs.ErrorAt("mapAssign", fmt.Errorf("unsupport %s kind", kind)))
 	}
 }
 
@@ -123,7 +129,7 @@ func valueAssign(x reflect.Value, value interface{}) {
 		mapAssign(x, v)
 
 	default:
-		panic(assignError{"config.valueAssign", fmt.Sprintf("unsupport %T type", v)})
+		panic(errs.ErrorAt("valueAssign", fmt.Errorf("unsupport %T type", v)))
 	}
 }
 

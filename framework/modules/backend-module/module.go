@@ -20,7 +20,7 @@ func init() {
 }
 
 type C struct {
-	Addr string
+	Addr string `json:",readonly"`
 }
 
 type M struct {

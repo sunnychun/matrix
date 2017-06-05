@@ -1,6 +1,9 @@
 package tags
 
-import "strings"
+import (
+	"strings"
+	"unicode"
+)
 
 type TagOptions string
 
@@ -28,4 +31,23 @@ func (o TagOptions) Contains(optionName string) bool {
 		s = next
 	}
 	return false
+}
+
+func IsValidTag(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, c := range s {
+		switch {
+		case strings.ContainsRune("!#$%&()*+-./:<=>?@[]^_{|}~ ", c):
+			// Backslash and quote chars are reserved, but
+			// otherwise any punctuation chars are allowed
+			// in a tag name.
+		default:
+			if !unicode.IsLetter(c) && !unicode.IsDigit(c) {
+				return false
+			}
+		}
+	}
+	return true
 }

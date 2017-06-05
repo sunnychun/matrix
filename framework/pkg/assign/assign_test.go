@@ -1,4 +1,4 @@
-package metas
+package assign
 
 import (
 	"encoding/json"

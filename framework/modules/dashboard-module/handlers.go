@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/ironzhang/matrix/framework"
+	"github.com/ironzhang/matrix/framework/pkg/assign"
 	"github.com/ironzhang/matrix/restful"
 )
 
@@ -33,6 +34,11 @@ func (h *handlers) GetModuleConfig(ctx context.Context, values url.Values, req i
 	return nil
 }
 
-func (h *handlers) PutModuleConfig(ctx context.Context, values url.Values, req interface{}, resp interface{}) error {
+func (h *handlers) PutModuleConfig(ctx context.Context, values url.Values, req map[string]interface{}, resp *interface{}) error {
+	configs := framework.Configs()
+	if cfg, ok := configs[values.Get(":module")]; ok {
+		assign.Assign(cfg, req)
+		*resp = cfg
+	}
 	return nil
 }

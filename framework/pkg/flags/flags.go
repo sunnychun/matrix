@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
-	"strings"
-	"unicode"
 
 	"github.com/ironzhang/matrix/errs"
 	"github.com/ironzhang/matrix/framework/pkg/tags"
@@ -79,27 +77,8 @@ func (f flags) SetupStruct(prefix, usage string, v reflect.Value) {
 
 func parseNameFromTag(tag reflect.StructTag) string {
 	name, _ := tags.ParseTag(tag.Get("json"))
-	if isValidTag(name) {
+	if tags.IsValidTag(name) {
 		return name
 	}
 	return ""
-}
-
-func isValidTag(s string) bool {
-	if s == "" {
-		return false
-	}
-	for _, c := range s {
-		switch {
-		case strings.ContainsRune("!#$%&()*+-./:<=>?@[]^_{|}~ ", c):
-			// Backslash and quote chars are reserved, but
-			// otherwise any punctuation chars are allowed
-			// in a tag name.
-		default:
-			if !unicode.IsLetter(c) && !unicode.IsDigit(c) {
-				return false
-			}
-		}
-	}
-	return true
 }
