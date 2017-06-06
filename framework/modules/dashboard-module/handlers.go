@@ -37,7 +37,9 @@ func (h *handlers) GetModuleConfig(ctx context.Context, values url.Values, req i
 func (h *handlers) PutModuleConfig(ctx context.Context, values url.Values, req map[string]interface{}, resp *interface{}) error {
 	configs := framework.Configs()
 	if cfg, ok := configs[values.Get(":module")]; ok {
-		assign.Assign(cfg, req)
+		if err := assign.Assign(cfg, req); err != nil {
+			return err
+		}
 		*resp = cfg
 	}
 	return nil
