@@ -19,7 +19,7 @@ func (v boolValue) Set(s string) error {
 
 func (v boolValue) String() string {
 	val := reflect.Value(v)
-	if val.Kind() == reflect.Invalid {
+	if !val.IsValid() {
 		return "false"
 	}
 	return strconv.FormatBool(val.Bool())
@@ -39,7 +39,7 @@ func (v intValue) Set(s string) error {
 
 func (v intValue) String() string {
 	val := reflect.Value(v)
-	if val.Kind() == reflect.Invalid {
+	if !val.IsValid() {
 		return "0"
 	}
 	return strconv.FormatInt(val.Int(), 10)
@@ -59,7 +59,7 @@ func (v uintValue) Set(s string) error {
 
 func (v uintValue) String() string {
 	val := reflect.Value(v)
-	if val.Kind() == reflect.Invalid {
+	if !val.IsValid() {
 		return "0"
 	}
 	return strconv.FormatUint(val.Uint(), 10)
@@ -79,7 +79,7 @@ func (v floatValue) Set(s string) error {
 
 func (v floatValue) String() string {
 	val := reflect.Value(v)
-	if val.Kind() == reflect.Invalid {
+	if !val.IsValid() {
 		return "0"
 	}
 	return strconv.FormatFloat(val.Float(), 'g', -1, 64)
@@ -98,7 +98,7 @@ func (v stringValue) Set(s string) error {
 
 func (v stringValue) String() string {
 	val := reflect.Value(v)
-	if val.Kind() == reflect.Invalid {
+	if !val.IsValid() {
 		return ""
 	}
 	return val.String()
