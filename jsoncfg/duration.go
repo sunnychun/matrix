@@ -2,7 +2,6 @@ package jsoncfg
 
 import (
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -12,13 +11,13 @@ func (d Duration) String() string {
 	return time.Duration(d).String()
 }
 
-func (d Duration) MarshalJSON() ([]byte, error) {
-	s := fmt.Sprintf("%q", d)
+func (d Duration) MarshalText() ([]byte, error) {
+	s := fmt.Sprintf("%s", d)
 	return []byte(s), nil
 }
 
-func (d *Duration) UnmarshalJSON(b []byte) error {
-	du, err := time.ParseDuration(strings.Trim(string(b), `"`))
+func (d *Duration) UnmarshalText(b []byte) error {
+	du, err := time.ParseDuration(string(b))
 	if err != nil {
 		return err
 	}
