@@ -12,5 +12,5 @@ func ErrorAt(method string, err error) error {
 }
 
 func (e errorAt) Error() string {
-	return fmt.Sprintf("call of %s occur %v", e.method, e.err)
+	return fmt.Sprintf("call of %s occur: %v", e.method, e.err)
 }
