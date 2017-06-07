@@ -185,21 +185,45 @@ func indirect(v reflect.Value) reflect.Value {
 	if v.Kind() != reflect.Ptr && v.Type().Name() != "" && v.CanAddr() {
 		v = v.Addr()
 	}
+L:
 	for {
-		if v.Kind() == reflect.Interface && !v.IsNil() {
+		switch k := v.Kind(); k {
+		case reflect.Ptr:
+			if v.IsNil() {
+				v.Set(reflect.New(v.Type().Elem()))
+			}
 			v = v.Elem()
-			continue
+		case reflect.Interface:
+			if v.IsNil() {
+				break L
+			}
+			v = v.Elem()
+		default:
+			break L
 		}
-		if v.Kind() != reflect.Ptr {
-			break
-		}
-		if v.IsNil() {
-			v.Set(reflect.New(v.Type().Elem()))
-		}
-		v = v.Elem()
 	}
 	return v
 }
+
+//func indirect(v reflect.Value) reflect.Value {
+//	if v.Kind() != reflect.Ptr && v.Type().Name() != "" && v.CanAddr() {
+//		v = v.Addr()
+//	}
+//	for {
+//		if v.Kind() == reflect.Interface && !v.IsNil() {
+//			v = v.Elem()
+//			continue
+//		}
+//		if v.Kind() != reflect.Ptr {
+//			break
+//		}
+//		if v.IsNil() {
+//			v.Set(reflect.New(v.Type().Elem()))
+//		}
+//		v = v.Elem()
+//	}
+//	return v
+//}
 
 func indirectUnmarshaler(v reflect.Value) (json.Unmarshaler, encoding.TextUnmarshaler, reflect.Value) {
 	if v.Kind() != reflect.Ptr && v.Type().Name() != "" && v.CanAddr() {
