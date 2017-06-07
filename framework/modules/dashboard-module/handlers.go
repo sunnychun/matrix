@@ -5,7 +5,6 @@ import (
 	"net/url"
 
 	"github.com/ironzhang/matrix/framework"
-	"github.com/ironzhang/matrix/framework/pkg/assign"
 	"github.com/ironzhang/matrix/restful"
 )
 
@@ -22,25 +21,27 @@ func (h *handlers) Register(m *restful.ServeMux) error {
 }
 
 func (h *handlers) GetConfigs(ctx context.Context, values url.Values, req interface{}, resp *interface{}) error {
-	*resp = framework.Configs()
+	m := make(map[string]interface{})
+	for k, c := range framework.Configs() {
+		m[k] = c.Get()
+	}
+	*resp = m
 	return nil
 }
 
 func (h *handlers) GetModuleConfig(ctx context.Context, values url.Values, req interface{}, resp *interface{}) error {
-	configs := framework.Configs()
-	if cfg, ok := configs[values.Get(":module")]; ok {
-		*resp = cfg
+	if c, ok := framework.Configs()[values.Get(":module")]; ok {
+		*resp = c.Get()
 	}
 	return nil
 }
 
 func (h *handlers) PutModuleConfig(ctx context.Context, values url.Values, req map[string]interface{}, resp *interface{}) error {
-	configs := framework.Configs()
-	if cfg, ok := configs[values.Get(":module")]; ok {
-		if err := assign.Assign(cfg, req); err != nil {
+	if c, ok := framework.Configs()[values.Get(":module")]; ok {
+		if err := c.Set(req); err != nil {
 			return err
 		}
-		*resp = cfg
+		*resp = c.Get()
 	}
 	return nil
 }

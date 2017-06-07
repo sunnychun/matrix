@@ -1,4 +1,4 @@
-package experimental
+package values
 
 import (
 	"encoding"
@@ -104,6 +104,10 @@ func SetValue(x, y interface{}) (err error) {
 				err = e
 				return
 			}
+			if e, ok := r.(string); ok {
+				err = errors.New(e)
+				return
+			}
 			panic(r)
 		}
 	}()
@@ -118,11 +122,17 @@ type setState struct {
 func (s setState) set(x, y reflect.Value) {
 	y = indirect(y)
 	switch y.Kind() {
-	case reflect.Bool,
-		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
-		reflect.Float32, reflect.Float64:
-		indirect(x).Set(y)
+	case reflect.Bool:
+		s.setBool(x, y)
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		s.setInt(x, y)
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		s.setUint(x, y)
+
+	case reflect.Float32, reflect.Float64:
+		s.setFloat(x, y)
 
 	case reflect.String:
 		s.setString(x, y)
@@ -138,6 +148,68 @@ func (s setState) set(x, y reflect.Value) {
 
 	default:
 		s.panic("set", setError{src: y.Type(), dst: x.Type()})
+	}
+}
+
+func (s setState) setBool(x, y reflect.Value) {
+	x = indirect(x)
+	switch x.Kind() {
+	case reflect.Bool:
+		x.SetBool(y.Bool())
+
+	default:
+		s.panic("setBool", setError{src: y.Type(), dst: x.Type()})
+	}
+}
+
+func (s setState) setInt(x, y reflect.Value) {
+	x = indirect(x)
+	switch x.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		x.SetInt(y.Int())
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		x.SetUint(uint64(y.Int()))
+
+	case reflect.Float32, reflect.Float64:
+		x.SetFloat(float64(y.Int()))
+
+	default:
+		s.panic("setInt", setError{src: y.Type(), dst: x.Type()})
+	}
+}
+
+func (s setState) setUint(x, y reflect.Value) {
+	x = indirect(x)
+	switch x.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		x.SetInt(int64(y.Uint()))
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		x.SetUint(y.Uint())
+
+	case reflect.Float32, reflect.Float64:
+		x.SetFloat(float64(y.Uint()))
+
+	default:
+		s.panic("setUint", setError{src: y.Type(), dst: x.Type()})
+	}
+}
+
+func (s setState) setFloat(x, y reflect.Value) {
+	x = indirect(x)
+	switch x.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		x.SetInt(int64(y.Float()))
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		x.SetUint(uint64(y.Float()))
+
+	case reflect.Float32, reflect.Float64:
+		x.SetFloat(y.Float())
+
+	default:
+		s.panic("setFloat", setError{src: y.Type(), dst: x.Type()})
 	}
 }
 

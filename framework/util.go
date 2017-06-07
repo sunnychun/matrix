@@ -5,6 +5,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/ironzhang/matrix/framework/pkg/values"
 	"github.com/ironzhang/matrix/jsoncfg"
 	"github.com/ironzhang/matrix/tlog"
 )
@@ -16,7 +17,7 @@ func (bs *byteSlice) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func loadAppConfig(configs Values, file string) (err error) {
+func loadAppConfig(configs values.Values, file string) (err error) {
 	if file == "" {
 		return nil
 	}

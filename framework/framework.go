@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ironzhang/matrix/framework/pkg/flags"
+	"github.com/ironzhang/matrix/framework/pkg/values"
 	"github.com/ironzhang/matrix/jsoncfg"
 	"github.com/ironzhang/matrix/tlog"
 )
@@ -34,8 +35,8 @@ type Runner interface {
 type framework struct {
 	commandLine *flag.FlagSet
 	options     Options
-	flags       Values
-	configs     Values
+	flags       values.Values
+	configs     values.Values
 	modules     []Module
 }
 
@@ -173,18 +174,18 @@ func (f *framework) Register(m Module, opts interface{}, cfg interface{}) {
 
 	if opts != nil {
 		if f.flags == nil {
-			f.flags = make(Values)
+			f.flags = make(values.Values)
 		}
-		if err := f.flags.register(m.Name(), opts); err != nil {
+		if err := f.flags.Register(m.Name(), opts); err != nil {
 			panic(err)
 		}
 	}
 
 	if cfg != nil {
 		if f.configs == nil {
-			f.configs = make(Values)
+			f.configs = make(values.Values)
 		}
-		if err := f.configs.register(m.Name(), cfg); err != nil {
+		if err := f.configs.Register(m.Name(), cfg); err != nil {
 			panic(err)
 		}
 	}
@@ -208,10 +209,10 @@ func SetOptions(opts Options) {
 	f.options = opts
 }
 
-func Flags() Values {
+func Flags() values.Values {
 	return f.flags
 }
 
-func Configs() Values {
+func Configs() values.Values {
 	return f.configs
 }
