@@ -93,6 +93,7 @@ func (e setError) Error() string {
 	return fmt.Sprintf("can not set value from %s[%s] to %s[%s]", e.src.Kind(), e.src, e.dst.Kind(), e.dst)
 }
 
+// SetValue set the y value to x
 func SetValue(x, y interface{}) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
