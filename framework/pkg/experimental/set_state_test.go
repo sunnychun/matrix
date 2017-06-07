@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/ironzhang/matrix/jsoncfg"
 )
@@ -78,6 +79,311 @@ func TestIndirectUnmarshaler(t *testing.T) {
 		}
 		if got, want := rv, tt.rv; got != want {
 			t.Errorf("tests[%d]: Value: got(%v) != want(%v)", i, got, want)
+		}
+	}
+}
+
+func TestSetValue(t *testing.T) {
+	if true {
+		casename := "SetHelloString"
+
+		var x string
+		var y string = "hello"
+
+		if err := SetValue(&x, y); err != nil {
+			t.Fatalf("%s: %v", casename, err)
+		}
+		if got, want := x, y; got != want {
+			t.Errorf("%s: %v != %v", casename, got, want)
+		}
+	}
+
+	if true {
+		casename := "SetDurationString"
+
+		var x jsoncfg.Duration
+		var y string = "10m30s"
+		var w = jsoncfg.Duration(10*time.Minute + 30*time.Second)
+
+		if err := SetValue(&x, y); err != nil {
+			t.Fatalf("%s: %v", casename, err)
+		}
+		if got, want := x, w; got != want {
+			t.Errorf("%s: %v != %v", casename, got, want)
+		}
+	}
+
+	if true {
+		casename := "SetArrayToArray"
+
+		var x = [5]int{5}
+		var y = [10]int{1, 2, 3}
+		var w = [5]int{1, 2, 3}
+
+		if err := SetValue(&x, y); err != nil {
+			t.Fatalf("%s: %v", casename, err)
+		}
+		if got, want := x, w; got != want {
+			t.Errorf("%s: %v != %v", casename, got, want)
+		}
+	}
+
+	if true {
+		casename := "SetArrayToSlice"
+
+		var x = []int{5, 4, 3, 2, 1}
+		var y = [3]int{1, 2, 3}
+		var w = []int{1, 2, 3}
+
+		if err := SetValue(&x, y); err != nil {
+			t.Fatalf("%s: %v", casename, err)
+		}
+		if got, want := x, w; !reflect.DeepEqual(got, want) {
+			t.Errorf("%s: %v != %v", casename, got, want)
+		}
+	}
+
+	if true {
+		casename := "SetSliceToArray"
+
+		var x = [5]int{5, 4, 3, 2, 1}
+		var y = []int{1, 2, 3}
+		var w = [5]int{1, 2, 3}
+
+		if err := SetValue(&x, y); err != nil {
+			t.Fatalf("%s: %v", casename, err)
+		}
+		if got, want := x, w; got != want {
+			t.Errorf("%s: %v != %v", casename, got, want)
+		}
+	}
+
+	if true {
+		casename := "SetSliceToSlice"
+
+		var x = []int{5, 4, 3, 2, 1}
+		var y = []int{1, 2, 3}
+		var w = []int{1, 2, 3}
+
+		if err := SetValue(&x, y); err != nil {
+			t.Fatalf("%s: %v", casename, err)
+		}
+		if got, want := x, w; !reflect.DeepEqual(got, want) {
+			t.Errorf("%s: %v != %v", casename, got, want)
+		}
+	}
+
+	if true {
+		casename := "SetSliceToInterface"
+
+		var x interface{}
+		var y = []int{1, 2, 3}
+		var w = []int{1, 2, 3}
+
+		if err := SetValue(&x, y); err != nil {
+			t.Fatalf("%s: %v", casename, err)
+		}
+		if got, want := x, w; !reflect.DeepEqual(got, want) {
+			t.Errorf("%s: %v != %v", casename, got, want)
+		}
+	}
+
+	if true {
+		casename := "SetMapToInterface"
+
+		var x interface{}
+		var y = map[string]int{"1": 1, "2": 2}
+		var w = y
+
+		if err := SetValue(&x, y); err != nil {
+			t.Fatalf("%s: %v", casename, err)
+		}
+		if got, want := x, w; !reflect.DeepEqual(got, want) {
+			t.Errorf("%s: %v != %v", casename, got, want)
+		}
+	}
+
+	if true {
+		casename := "SetMapToMap"
+
+		var x map[string]int
+		var y = map[string]int{"1": 1, "2": 2}
+		var w = y
+
+		if err := SetValue(&x, y); err != nil {
+			t.Fatalf("%s: %v", casename, err)
+		}
+		if got, want := x, w; !reflect.DeepEqual(got, want) {
+			t.Errorf("%s: %v != %v", casename, got, want)
+		}
+	}
+
+	if true {
+		casename := "SetMapToStruct1"
+
+		type T struct {
+			A string
+			B int
+		}
+
+		var x T
+		var y = map[string]interface{}{"1": 1, "2": 2, "A": "A", "B": 3}
+		var w = T{A: "A", B: 3}
+
+		if err := SetValue(&x, y); err != nil {
+			t.Fatalf("%s: %v", casename, err)
+		}
+		if got, want := x, w; !reflect.DeepEqual(got, want) {
+			t.Errorf("%s: %v != %v", casename, got, want)
+		}
+	}
+
+	if true {
+		casename := "SetMapToStruct2"
+
+		type T struct {
+			A map[string]int
+			B map[string]string
+			C map[int]int
+		}
+
+		var x T
+		var y = map[string]interface{}{
+			"A": map[string]int{
+				"A1": 1,
+				"A2": 2,
+			},
+			"B": map[string]string{
+				"B1": "1",
+				"B2": "2",
+			},
+			"C": map[int]int{
+				1: 1,
+				2: 2,
+			},
+		}
+		var w = T{
+			A: map[string]int{
+				"A1": 1,
+				"A2": 2,
+			},
+			B: map[string]string{
+				"B1": "1",
+				"B2": "2",
+			},
+			C: map[int]int{
+				1: 1,
+				2: 2,
+			},
+		}
+
+		if err := SetValue(&x, y); err != nil {
+			t.Fatalf("%s: %v", casename, err)
+		}
+		if got, want := x, w; !reflect.DeepEqual(got, want) {
+			t.Errorf("%s: %v != %v", casename, got, want)
+		}
+	}
+
+	if true {
+		casename := "SetMapToStruct3"
+
+		type T struct {
+			A string
+			B int
+			C float64 `json:c`
+			D string  `json:",readonly"`
+			E string  `json:"-"`
+			f string
+		}
+
+		var x = T{D: "readonly", E: "nochange", f: "nochange"}
+		var y = map[string]interface{}{
+			"A": "A",
+			"B": 3,
+			"C": 4.1,
+			"D": "D",
+			"E": "E",
+			"f": "f",
+		}
+		var w = T{
+			A: "A",
+			B: 3,
+			C: 4.1,
+			D: "readonly",
+			E: "nochange",
+			f: "nochange",
+		}
+		if err := SetValue(&x, y); err != nil {
+			t.Fatalf("%s: %v", casename, err)
+		}
+		if got, want := x, w; !reflect.DeepEqual(got, want) {
+			t.Errorf("%s: %v != %v", casename, got, want)
+		}
+	}
+
+	if true {
+		casename := "SetStructToInterface"
+
+		type T struct {
+			A string
+			B int
+		}
+
+		var x interface{}
+		var y = T{A: "A", B: 3}
+		var w = T{A: "A", B: 3}
+
+		if err := SetValue(&x, y); err != nil {
+			t.Fatalf("%s: %v", casename, err)
+		}
+		if got, want := x, w; !reflect.DeepEqual(got, want) {
+			t.Errorf("%s: %v != %v", casename, got, want)
+		}
+	}
+
+	if true {
+		casename := "SetStructToMap"
+
+		type T struct {
+			A string
+			B int
+		}
+
+		var x map[string]interface{}
+		var y = T{A: "A", B: 3}
+		var w = map[string]interface{}{"A": "A", "B": 3}
+
+		if err := SetValue(&x, y); err != nil {
+			t.Fatalf("%s: %v", casename, err)
+		}
+		if got, want := x, w; !reflect.DeepEqual(got, want) {
+			t.Errorf("%s: %v != %v", casename, got, want)
+		}
+	}
+
+	if true {
+		casename := "SetStructToStruct"
+
+		type T1 struct {
+			A string
+			B int
+		}
+
+		type T2 struct {
+			X string `json:"A"`
+			Y int    `json:"B"`
+		}
+
+		var x T1
+		var y = T2{X: "A", Y: 3}
+		var w = T1{A: "A", B: 3}
+
+		if err := SetValue(&x, y); err != nil {
+			t.Fatalf("%s: %v", casename, err)
+		}
+		if got, want := x, w; !reflect.DeepEqual(got, want) {
+			t.Errorf("%s: %v != %v", casename, got, want)
 		}
 	}
 }
