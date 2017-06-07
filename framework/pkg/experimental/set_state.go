@@ -42,7 +42,41 @@ L:
 }
 
 func indirectUnmarshaler(v reflect.Value) (json.Unmarshaler, encoding.TextUnmarshaler, reflect.Value) {
-	return nil, nil, reflect.Value{}
+	if !v.IsValid() {
+		panic(errs.ErrorAt("indirectUnmarshaler", errInvalidValue))
+	}
+
+	if v.Kind() != reflect.Ptr && v.Type().Name() != "" && v.CanAddr() {
+		v = v.Addr()
+	}
+
+L:
+	for {
+		if v.Type().NumMethod() > 0 {
+			if u, ok := v.Interface().(json.Unmarshaler); ok {
+				return u, nil, reflect.Value{}
+			}
+			if u, ok := v.Interface().(encoding.TextUnmarshaler); ok {
+				return nil, u, reflect.Value{}
+			}
+		}
+
+		switch k := v.Kind(); k {
+		case reflect.Ptr:
+			if v.IsNil() {
+				v.Set(reflect.New(v.Type().Elem()))
+			}
+			v = v.Elem()
+		case reflect.Interface:
+			if v.IsNil() {
+				break L
+			}
+			v = v.Elem()
+		default:
+			break L
+		}
+	}
+	return nil, nil, v
 }
 
 type setError struct {
