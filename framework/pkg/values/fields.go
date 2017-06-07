@@ -1,11 +1,15 @@
 package experimental
 
-import "reflect"
+import (
+	"reflect"
 
-func parseJSONTag(tag string) (string, bool) {
+	"github.com/ironzhang/matrix/framework/pkg/tags"
+)
+
+func parseTag(tag string) (string, bool) {
 	if tag != "" {
-		name, opts := parseTag(tag)
-		if isValidTag(name) {
+		name, opts := tags.ParseTag(tag)
+		if tags.IsValidTag(name) {
 			return name, opts.Contains("readonly")
 		}
 		return "", opts.Contains("readonly")
@@ -29,7 +33,7 @@ func typeFields(t reflect.Type) map[string]field {
 		if sf.PkgPath != "" && !sf.Anonymous { // unexported
 			continue
 		}
-		name, readonly = parseJSONTag(sf.Tag.Get("json"))
+		name, readonly = parseTag(sf.Tag.Get("json"))
 		if name == "-" {
 			continue
 		}

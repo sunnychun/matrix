@@ -115,7 +115,6 @@ func SetValue(x, y interface{}) (err error) {
 type setState struct {
 }
 
-// x = y
 func (s setState) set(x, y reflect.Value) {
 	y = indirect(y)
 	switch y.Kind() {

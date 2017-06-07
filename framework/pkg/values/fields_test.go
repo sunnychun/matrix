@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestParseJSONTag(t *testing.T) {
+func TestParseTag(t *testing.T) {
 	tests := []struct {
 		tag      string
 		name     string
@@ -18,7 +18,7 @@ func TestParseJSONTag(t *testing.T) {
 		{"name,noreadonly", "name", false},
 	}
 	for _, tt := range tests {
-		name, readonly := parseJSONTag(tt.tag)
+		name, readonly := parseTag(tt.tag)
 		if got, want := name, tt.name; got != want {
 			t.Errorf("parse %q tag: name: got(%v) != want(%v)", tt.tag, got, want)
 		}
