@@ -3,14 +3,24 @@ package experimental
 import (
 	"encoding"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
+
+	"github.com/ironzhang/matrix/errs"
 )
 
+var errInvalidValue = errors.New("invalid value")
+
 func indirect(v reflect.Value) reflect.Value {
+	if !v.IsValid() {
+		panic(errs.ErrorAt("indirect", errInvalidValue))
+	}
+
 	if v.Kind() != reflect.Ptr && v.Type().Name() != "" && v.CanAddr() {
 		v = v.Addr()
 	}
+
 L:
 	for {
 		switch k := v.Kind(); k {
