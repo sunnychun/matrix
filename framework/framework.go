@@ -48,7 +48,7 @@ func (f *framework) parseCommandLine() (err error) {
 		return err
 	}
 	for module, opts := range f.flags {
-		if err = flags.Setup(f.commandLine, opts, module, ""); err != nil {
+		if err = flags.Setup(f.commandLine, opts.Get(), module, ""); err != nil {
 			return err
 		}
 	}
