@@ -4,8 +4,8 @@ import (
 	"github.com/ironzhang/matrix/framework"
 
 	_ "github.com/ironzhang/matrix/framework/modules/dashboard-module"
+	_ "github.com/ironzhang/matrix/framework/modules/debug-module"
 	_ "github.com/ironzhang/matrix/framework/modules/micro-module"
-	_ "github.com/ironzhang/matrix/framework/modules/pprof-module"
 )
 
 var Options = &O{}

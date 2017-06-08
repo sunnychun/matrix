@@ -1,6 +1,7 @@
-package pprof_module
+package debug_module
 
 import (
+	"expvar"
 	"net/http/pprof"
 
 	"github.com/ironzhang/matrix/framework"
@@ -17,10 +18,11 @@ type M struct {
 }
 
 func (m *M) Name() string {
-	return "pprof-module"
+	return "debug-module"
 }
 
 func (m *M) Init() error {
+	backend_module.Module.Handle("/debug/vars", expvar.Handler())
 	backend_module.Module.HandleFunc("/debug/pprof/", pprof.Index)
 	backend_module.Module.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
 	backend_module.Module.HandleFunc("/debug//pprof/profile", pprof.Profile)

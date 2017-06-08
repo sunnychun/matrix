@@ -1,4 +1,4 @@
-package pprof_module
+package debug_module
 
 import (
 	"testing"
