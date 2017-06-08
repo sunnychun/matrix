@@ -6,17 +6,26 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/ironzhang/matrix/framework"
+	"github.com/ironzhang/matrix/jsoncfg"
 )
 
-var Config = &clientv3.Config{
+var Config = &C{
 	Endpoints:   []string{"localhost:2379", "localhost:22379", "localhost:32379"},
-	DialTimeout: 5 * time.Second,
+	DialTimeout: jsoncfg.Duration(5 * time.Second),
 }
 
 var Module = &M{}
 
 func init() {
 	framework.Register(Module, nil, Config)
+}
+
+type C struct {
+	Endpoints        []string         `json:",readonly"`
+	AutoSyncInterval jsoncfg.Duration `json:",readonly"`
+	DialTimeout      jsoncfg.Duration `json:",readonly"`
+	Username         string           `json:",readonly"`
+	Password         string           `json:",readonly"`
 }
 
 type M struct {
@@ -28,7 +37,14 @@ func (m *M) Name() string {
 }
 
 func (m *M) Init() (err error) {
-	m.client, err = clientv3.New(*Config)
+	cfg := clientv3.Config{
+		Endpoints:        Config.Endpoints,
+		AutoSyncInterval: time.Duration(Config.AutoSyncInterval),
+		DialTimeout:      time.Duration(Config.DialTimeout),
+		Username:         Config.Username,
+		Password:         Config.Password,
+	}
+	m.client, err = clientv3.New(cfg)
 	if err != nil {
 		return fmt.Errorf("new client: %v", err)
 	}
