@@ -29,7 +29,6 @@ type C struct {
 func (c *C) Reload() error {
 	log := tlog.Std().Sugar().With("module", Module.Name())
 	log.Debug("reload")
-
 	Module.verbose.Store(c.Verbose)
 	return nil
 }

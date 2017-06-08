@@ -1,7 +1,6 @@
 package pprof_module
 
 import (
-	"net/http"
 	"net/http/pprof"
 
 	"github.com/ironzhang/matrix/framework"
@@ -22,13 +21,11 @@ func (m *M) Name() string {
 }
 
 func (m *M) Init() error {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/debug/pprof/", pprof.Index)
-	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-	mux.HandleFunc("/debug//pprof/profile", pprof.Profile)
-	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-	backend_module.Module.Handle("/debug/", mux)
+	backend_module.Module.HandleFunc("/debug/pprof/", pprof.Index)
+	backend_module.Module.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	backend_module.Module.HandleFunc("/debug//pprof/profile", pprof.Profile)
+	backend_module.Module.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	backend_module.Module.HandleFunc("/debug/pprof/trace", pprof.Trace)
 	return nil
 }
 

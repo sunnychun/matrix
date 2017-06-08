@@ -10,6 +10,6 @@
 
 * matrixclt
 
-* 各通用模块配置标准化
-
 * pprof-module支持添加观察变量
+
+* dashboard-module支持options查看修改，支持PutConfigs，及修改配置后保存到文件
