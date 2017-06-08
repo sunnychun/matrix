@@ -1,6 +1,8 @@
 package main
 
 import (
+	"expvar"
+
 	"github.com/ironzhang/matrix/framework"
 
 	_ "github.com/ironzhang/matrix/framework/modules/dashboard-module"
@@ -28,6 +30,7 @@ func (m *M) Name() string {
 }
 
 func (m *M) Init() error {
+	expvar.NewInt("conn number").Set(10)
 	return nil
 }
 
