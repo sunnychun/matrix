@@ -59,7 +59,7 @@ func (f *framework) doCommandLine() (err error) {
 	var quit bool
 
 	if f.options.ConfigExample != "" {
-		if jsoncfg.WriteToFile(f.options.ConfigExample, f.configs); err != nil {
+		if jsoncfg.WriteToFile(f.options.ConfigExample, f.configs.Interfaces()); err != nil {
 			return fmt.Errorf("generate config example: %v", err)
 		}
 		quit = true

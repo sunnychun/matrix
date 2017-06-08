@@ -2,6 +2,7 @@ package framework
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"go.uber.org/zap"
 
@@ -28,7 +29,7 @@ func loadAppConfig(configs *model.Values, file string) (err error) {
 	for k, v := range m {
 		if cfg, ok := configs.GetInterface(k); ok {
 			if err = json.Unmarshal(v, cfg); err != nil {
-				return err
+				return fmt.Errorf("load %s module config: %v", k, err)
 			}
 		}
 	}
