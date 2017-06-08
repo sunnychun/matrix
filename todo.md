@@ -4,7 +4,7 @@
 
 * values: lock, 对外接口设计
 
-* httputils: VerboseHandler, VerboseClient
+* httputils: VerboseClient
 
 * micro/discovery: 支持WatchAll
 
