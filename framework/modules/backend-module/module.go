@@ -12,7 +12,7 @@ import (
 
 var Config = &C{
 	Addr:    ":6060",
-	Verbose: 1,
+	Verbose: 0,
 }
 
 var Module = &M{}
@@ -24,6 +24,14 @@ func init() {
 type C struct {
 	Addr    string `json:",readonly"`
 	Verbose int64
+}
+
+func (c *C) Reload() error {
+	log := tlog.Std().Sugar().With("module", Module.Name())
+	log.Debug("reload")
+
+	Module.verbose.Store(c.Verbose)
+	return nil
 }
 
 type M struct {
