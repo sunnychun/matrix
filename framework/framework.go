@@ -44,7 +44,7 @@ func (f *framework) parseCommandLine() (err error) {
 	if f.commandLine == nil {
 		f.commandLine = flag.CommandLine
 	}
-	if err = flags.Setup(f.commandLine, &f.options, "", ""); err != nil {
+	if err = f.flags.Register("", &f.options); err != nil {
 		return err
 	}
 	for module, opts := range f.flags.Interfaces() {
