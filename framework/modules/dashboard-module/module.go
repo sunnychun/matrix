@@ -23,7 +23,6 @@ func (m *M) Name() string {
 func (m *M) Init() (err error) {
 	var h handlers
 	mux := restful.NewServeMux(nil)
-	mux.SetVerbose(2)
 	if err = h.Register(mux); err != nil {
 		return err
 	}

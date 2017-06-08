@@ -11,7 +11,8 @@ import (
 )
 
 var Config = &C{
-	Addr: ":6060",
+	Addr:    ":6060",
+	Verbose: 1,
 }
 
 var Module = &M{}
