@@ -12,6 +12,7 @@ import (
 
 	"github.com/ironzhang/matrix/codes"
 	"github.com/ironzhang/matrix/context-value"
+	"github.com/ironzhang/matrix/httputils"
 	"github.com/ironzhang/matrix/restful/codec"
 	"github.com/ironzhang/matrix/tlog"
 	"github.com/ironzhang/matrix/uuid"
@@ -162,10 +163,10 @@ func (c *Client) DoContext(ctx context.Context, method, url string, args, reply 
 func (c *Client) setHeader(ctx context.Context, h http.Header) {
 	h.Set("Content-Type", c.codec().ContentType())
 	if v := context_value.ParseTraceId(ctx); v != "" {
-		h.Set(xTraceId, v)
+		h.Set(httputils.X_TRACE_ID, v)
 	}
 	if v := context_value.ParseVerbose(ctx); v {
-		h.Set(xVerbose, "1")
+		h.Set(httputils.X_VERBOSE, "1")
 	}
 }
 

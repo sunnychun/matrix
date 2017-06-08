@@ -21,7 +21,6 @@ func TestClientDoContext(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m.SetVerbose(0)
 	s := httptest.NewServer(m)
 
 	var c Client
@@ -62,7 +61,6 @@ func TestClientDoContextReturnErr(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m.SetVerbose(0)
 	s := httptest.NewServer(m)
 
 	var c Client

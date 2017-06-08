@@ -3,12 +3,8 @@ package restful
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
-	"os"
-	"strings"
 
 	"github.com/ironzhang/matrix/codes"
 	"github.com/ironzhang/matrix/context-value"
@@ -23,29 +19,14 @@ func NewServeMux(c codec.Codec) *ServeMux {
 		c = codec.DefaultCodec
 	}
 	return &ServeMux{
-		verbose:  1,
 		codec:    c,
 		patterns: make([]*pattern, 0),
 	}
 }
 
 type ServeMux struct {
-	w        io.Writer
-	verbose  int
 	codec    codec.Codec
 	patterns []*pattern
-}
-
-// SetVerbose 设置verbose级别
-//  verbose = 0, 不打印HTTP协议
-//  verbose = 1, 根据请求头部中是否含有X-Verbose来决定是否打印HTTP协议，默认级别
-//  verbose = 2, 打印HTTP协议
-func (m *ServeMux) SetVerbose(verbose int) {
-	m.verbose = verbose
-}
-
-func (m *ServeMux) SetWriter(w io.Writer) {
-	m.w = w
 }
 
 func (m *ServeMux) Delete(pat string, h interface{}) error {
@@ -96,17 +77,6 @@ func (m *ServeMux) Add(meth, pat string, i interface{}) error {
 
 func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := context_value.WithTraceId(context.Background(), getTraceId(r.Header))
-
-	// print verbose proto
-	if m.getVerbose(r.Header) {
-		m.printRequest(ctx, r)
-		d := httputils.NewResponseDumper(w, r)
-		defer m.printResponse(ctx, d)
-
-		w = d
-	}
-
-	// serve http
 	if err := m.serveHTTP(ctx, w, r); err != nil {
 		m.setError(w, err)
 	}
@@ -198,46 +168,8 @@ func (m *ServeMux) setError(w http.ResponseWriter, err error) {
 	m.codec.EncodeError(w, e)
 }
 
-func (m *ServeMux) writer() io.Writer {
-	if m.w == nil {
-		return os.Stdout
-	}
-	return m.w
-}
-
-func (m *ServeMux) printRequest(ctx context.Context, r *http.Request) {
-	b, err := httputil.DumpRequest(r, true)
-	if err != nil {
-		tlog.WithContext(ctx).Sugar().Errorw("dump request", "error", err)
-		return
-	}
-	traceId := context_value.ParseTraceId(ctx)
-	fmt.Fprintf(m.writer(), "traceId(%s) server request:\n%s\n", traceId, b)
-}
-
-func (m *ServeMux) printResponse(ctx context.Context, r *httputils.ResponseDumper) {
-	b := r.Dump(true)
-	traceId := context_value.ParseTraceId(ctx)
-	fmt.Fprintf(m.writer(), "traceId(%s) server response:\n%s\n", traceId, b)
-}
-
-func (m *ServeMux) getVerbose(h http.Header) bool {
-	switch m.verbose {
-	case 0:
-		return false
-	case 1:
-		if v := h.Get(xVerbose); v == "1" || strings.ToLower(v) == "true" {
-			return true
-		}
-		return false
-	case 2:
-		return true
-	}
-	return false
-}
-
 func getTraceId(h http.Header) string {
-	if v := h.Get(xTraceId); v != "" {
+	if v := h.Get(httputils.X_TRACE_ID); v != "" {
 		return v
 	}
 	return uuid.New().String()

@@ -21,7 +21,6 @@ func ServeHTTP(h http.Handler, method, path string, b []byte) (*httptest.Respons
 		return nil, err
 	}
 	//r.Header.Set("Content-Type", "application/json")
-	r.Header.Set(xVerbose, "0")
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	return w, nil
