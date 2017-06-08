@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/ironzhang/matrix/framework/pkg/flags"
-	"github.com/ironzhang/matrix/framework/pkg/values"
+	"github.com/ironzhang/matrix/framework/pkg/model"
 	"github.com/ironzhang/matrix/jsoncfg"
 	"github.com/ironzhang/matrix/tlog"
 )
@@ -35,8 +35,8 @@ type Runner interface {
 type framework struct {
 	commandLine *flag.FlagSet
 	options     Options
-	flags       values.Values
-	configs     values.Values
+	flags       model.Values
+	configs     model.Values
 	modules     []Module
 }
 
@@ -203,10 +203,10 @@ func SetOptions(opts Options) {
 	f.options = opts
 }
 
-func Flags() *values.Values {
+func Flags() *model.Values {
 	return &f.flags
 }
 
-func Configs() *values.Values {
+func Configs() *model.Values {
 	return &f.configs
 }

@@ -1,4 +1,4 @@
-package values
+package model
 
 import (
 	"encoding"

@@ -5,12 +5,12 @@ import (
 	"net/url"
 
 	"github.com/ironzhang/matrix/errs"
-	"github.com/ironzhang/matrix/framework/pkg/values"
+	"github.com/ironzhang/matrix/framework/pkg/model"
 	"github.com/ironzhang/matrix/restful"
 )
 
 type handlers struct {
-	configs *values.Values
+	configs *model.Values
 }
 
 func (h *handlers) Register(m *restful.ServeMux) error {
