@@ -37,13 +37,16 @@ func (h *handlers) GetModuleConfig(ctx context.Context, values url.Values, req i
 	return nil
 }
 
-func (h *handlers) PutModuleConfig(ctx context.Context, values url.Values, req map[string]interface{}, resp *interface{}) error {
+func (h *handlers) PutModuleConfig(ctx context.Context, values url.Values, req map[string]interface{}, resp *interface{}) (err error) {
 	module := values.Get(":module")
 	v, ok := h.configs.GetValue(module)
 	if !ok {
 		return errs.NotFound("configs", module)
 	}
-	if err := v.Store(req); err != nil {
+	if err = v.Store(req); err != nil {
+		return err
+	}
+	if err = v.Reload(); err != nil {
 		return err
 	}
 	*resp = v.Load()

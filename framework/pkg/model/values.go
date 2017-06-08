@@ -6,6 +6,10 @@ import (
 	"sync"
 )
 
+type Reloader interface {
+	Reload() error
+}
+
 type Value struct {
 	mu  sync.Mutex
 	ptr interface{}
@@ -19,6 +23,13 @@ func (v *Value) Store(a interface{}) error {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 	return setValue(v.ptr, a)
+}
+
+func (v *Value) Reload() error {
+	if r, ok := v.ptr.(Reloader); ok {
+		return r.Reload()
+	}
+	return nil
 }
 
 type Values struct {
