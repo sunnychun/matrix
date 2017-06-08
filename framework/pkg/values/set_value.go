@@ -94,7 +94,7 @@ func (e setError) Error() string {
 }
 
 // SetValue set the y value to x
-func SetValue(x, y interface{}) (err error) {
+func setValue(x, y interface{}) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if _, ok := r.(runtime.Error); ok {

@@ -47,8 +47,8 @@ func (f *framework) parseCommandLine() (err error) {
 	if err = flags.Setup(f.commandLine, &f.options, "", ""); err != nil {
 		return err
 	}
-	for module, opts := range f.flags {
-		if err = flags.Setup(f.commandLine, opts.Get(), module, ""); err != nil {
+	for module, opts := range f.flags.Interfaces() {
+		if err = flags.Setup(f.commandLine, opts, module, ""); err != nil {
 			return err
 		}
 	}
@@ -144,7 +144,7 @@ func (f *framework) Main() {
 	}
 
 	// load app config
-	if err = loadAppConfig(f.configs, f.options.ConfigFile); err != nil {
+	if err = loadAppConfig(&f.configs, f.options.ConfigFile); err != nil {
 		fmt.Fprintf(os.Stderr, "load app config: %v\n", err)
 		os.Exit(3)
 	}
@@ -173,18 +173,12 @@ func (f *framework) Register(m Module, opts interface{}, cfg interface{}) {
 	f.modules = append(f.modules, m)
 
 	if opts != nil {
-		if f.flags == nil {
-			f.flags = make(values.Values)
-		}
 		if err := f.flags.Register(m.Name(), opts); err != nil {
 			panic(err)
 		}
 	}
 
 	if cfg != nil {
-		if f.configs == nil {
-			f.configs = make(values.Values)
-		}
 		if err := f.configs.Register(m.Name(), cfg); err != nil {
 			panic(err)
 		}
@@ -209,10 +203,10 @@ func SetOptions(opts Options) {
 	f.options = opts
 }
 
-func Flags() values.Values {
-	return f.flags
+func Flags() *values.Values {
+	return &f.flags
 }
 
-func Configs() values.Values {
-	return f.configs
+func Configs() *values.Values {
+	return &f.configs
 }

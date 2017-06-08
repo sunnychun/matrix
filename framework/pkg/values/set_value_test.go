@@ -90,7 +90,7 @@ func TestSetValue(t *testing.T) {
 		var x string
 		var y string = "hello"
 
-		if err := SetValue(&x, y); err != nil {
+		if err := setValue(&x, y); err != nil {
 			t.Fatalf("%s: %v", casename, err)
 		}
 		if got, want := x, y; got != want {
@@ -105,7 +105,7 @@ func TestSetValue(t *testing.T) {
 		var y string = "10m30s"
 		var w = jsoncfg.Duration(10*time.Minute + 30*time.Second)
 
-		if err := SetValue(&x, y); err != nil {
+		if err := setValue(&x, y); err != nil {
 			t.Fatalf("%s: %v", casename, err)
 		}
 		if got, want := x, w; got != want {
@@ -120,7 +120,7 @@ func TestSetValue(t *testing.T) {
 		var y = [10]int{1, 2, 3}
 		var w = [5]int{1, 2, 3}
 
-		if err := SetValue(&x, y); err != nil {
+		if err := setValue(&x, y); err != nil {
 			t.Fatalf("%s: %v", casename, err)
 		}
 		if got, want := x, w; got != want {
@@ -135,7 +135,7 @@ func TestSetValue(t *testing.T) {
 		var y = [3]int{1, 2, 3}
 		var w = []int{1, 2, 3}
 
-		if err := SetValue(&x, y); err != nil {
+		if err := setValue(&x, y); err != nil {
 			t.Fatalf("%s: %v", casename, err)
 		}
 		if got, want := x, w; !reflect.DeepEqual(got, want) {
@@ -150,7 +150,7 @@ func TestSetValue(t *testing.T) {
 		var y = []int{1, 2, 3}
 		var w = [5]int{1, 2, 3}
 
-		if err := SetValue(&x, y); err != nil {
+		if err := setValue(&x, y); err != nil {
 			t.Fatalf("%s: %v", casename, err)
 		}
 		if got, want := x, w; got != want {
@@ -165,7 +165,7 @@ func TestSetValue(t *testing.T) {
 		var y = []int{1, 2, 3}
 		var w = []int{1, 2, 3}
 
-		if err := SetValue(&x, y); err != nil {
+		if err := setValue(&x, y); err != nil {
 			t.Fatalf("%s: %v", casename, err)
 		}
 		if got, want := x, w; !reflect.DeepEqual(got, want) {
@@ -180,7 +180,7 @@ func TestSetValue(t *testing.T) {
 		var y = []int{1, 2, 3}
 		var w = []int{1, 2, 3}
 
-		if err := SetValue(&x, y); err != nil {
+		if err := setValue(&x, y); err != nil {
 			t.Fatalf("%s: %v", casename, err)
 		}
 		if got, want := x, w; !reflect.DeepEqual(got, want) {
@@ -195,7 +195,7 @@ func TestSetValue(t *testing.T) {
 		var y = map[string]int{"1": 1, "2": 2}
 		var w = y
 
-		if err := SetValue(&x, y); err != nil {
+		if err := setValue(&x, y); err != nil {
 			t.Fatalf("%s: %v", casename, err)
 		}
 		if got, want := x, w; !reflect.DeepEqual(got, want) {
@@ -210,7 +210,7 @@ func TestSetValue(t *testing.T) {
 		var y = map[string]int{"1": 1, "2": 2}
 		var w = y
 
-		if err := SetValue(&x, y); err != nil {
+		if err := setValue(&x, y); err != nil {
 			t.Fatalf("%s: %v", casename, err)
 		}
 		if got, want := x, w; !reflect.DeepEqual(got, want) {
@@ -230,7 +230,7 @@ func TestSetValue(t *testing.T) {
 		var y = map[string]interface{}{"1": 1, "2": 2, "A": "A", "B": 3}
 		var w = T{A: "A", B: 3}
 
-		if err := SetValue(&x, y); err != nil {
+		if err := setValue(&x, y); err != nil {
 			t.Fatalf("%s: %v", casename, err)
 		}
 		if got, want := x, w; !reflect.DeepEqual(got, want) {
@@ -277,7 +277,7 @@ func TestSetValue(t *testing.T) {
 			},
 		}
 
-		if err := SetValue(&x, y); err != nil {
+		if err := setValue(&x, y); err != nil {
 			t.Fatalf("%s: %v", casename, err)
 		}
 		if got, want := x, w; !reflect.DeepEqual(got, want) {
@@ -314,7 +314,7 @@ func TestSetValue(t *testing.T) {
 			E: "nochange",
 			f: "nochange",
 		}
-		if err := SetValue(&x, y); err != nil {
+		if err := setValue(&x, y); err != nil {
 			t.Fatalf("%s: %v", casename, err)
 		}
 		if got, want := x, w; !reflect.DeepEqual(got, want) {
@@ -334,7 +334,7 @@ func TestSetValue(t *testing.T) {
 		var y = T{A: "A", B: 3}
 		var w = T{A: "A", B: 3}
 
-		if err := SetValue(&x, y); err != nil {
+		if err := setValue(&x, y); err != nil {
 			t.Fatalf("%s: %v", casename, err)
 		}
 		if got, want := x, w; !reflect.DeepEqual(got, want) {
@@ -354,7 +354,7 @@ func TestSetValue(t *testing.T) {
 		var y = T{A: "A", B: 3}
 		var w = map[string]interface{}{"A": "A", "B": 3}
 
-		if err := SetValue(&x, y); err != nil {
+		if err := setValue(&x, y); err != nil {
 			t.Fatalf("%s: %v", casename, err)
 		}
 		if got, want := x, w; !reflect.DeepEqual(got, want) {
@@ -379,7 +379,7 @@ func TestSetValue(t *testing.T) {
 		var y = T2{X: "A", Y: 3}
 		var w = T1{A: "A", B: 3}
 
-		if err := SetValue(&x, y); err != nil {
+		if err := setValue(&x, y); err != nil {
 			t.Fatalf("%s: %v", casename, err)
 		}
 		if got, want := x, w; !reflect.DeepEqual(got, want) {

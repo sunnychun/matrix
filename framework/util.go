@@ -17,7 +17,7 @@ func (bs *byteSlice) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func loadAppConfig(configs values.Values, file string) (err error) {
+func loadAppConfig(configs *values.Values, file string) (err error) {
 	if file == "" {
 		return nil
 	}
@@ -26,7 +26,7 @@ func loadAppConfig(configs values.Values, file string) (err error) {
 		return err
 	}
 	for k, v := range m {
-		if cfg, ok := configs[k]; ok {
+		if cfg, ok := configs.GetInterface(k); ok {
 			if err = json.Unmarshal(v, cfg); err != nil {
 				return err
 			}

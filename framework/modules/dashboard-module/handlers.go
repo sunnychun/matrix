@@ -4,11 +4,13 @@ import (
 	"context"
 	"net/url"
 
-	"github.com/ironzhang/matrix/framework"
+	"github.com/ironzhang/matrix/errs"
+	"github.com/ironzhang/matrix/framework/pkg/values"
 	"github.com/ironzhang/matrix/restful"
 )
 
 type handlers struct {
+	configs *values.Values
 }
 
 func (h *handlers) Register(m *restful.ServeMux) error {
@@ -21,27 +23,29 @@ func (h *handlers) Register(m *restful.ServeMux) error {
 }
 
 func (h *handlers) GetConfigs(ctx context.Context, values url.Values, req interface{}, resp *interface{}) error {
-	m := make(map[string]interface{})
-	for k, c := range framework.Configs() {
-		m[k] = c.Get()
-	}
-	*resp = m
+	*resp = h.configs.Interfaces()
 	return nil
 }
 
 func (h *handlers) GetModuleConfig(ctx context.Context, values url.Values, req interface{}, resp *interface{}) error {
-	if c, ok := framework.Configs()[values.Get(":module")]; ok {
-		*resp = c.Get()
+	module := values.Get(":module")
+	c, ok := h.configs.GetInterface(module)
+	if !ok {
+		return errs.NotFound("configs", module)
 	}
+	*resp = c
 	return nil
 }
 
 func (h *handlers) PutModuleConfig(ctx context.Context, values url.Values, req map[string]interface{}, resp *interface{}) error {
-	if c, ok := framework.Configs()[values.Get(":module")]; ok {
-		if err := c.Set(req); err != nil {
-			return err
-		}
-		*resp = c.Get()
+	module := values.Get(":module")
+	v, ok := h.configs.GetValue(module)
+	if !ok {
+		return errs.NotFound("configs", module)
 	}
+	if err := v.Store(req); err != nil {
+		return err
+	}
+	*resp = v.Load()
 	return nil
 }

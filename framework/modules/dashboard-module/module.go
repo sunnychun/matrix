@@ -21,7 +21,7 @@ func (m *M) Name() string {
 }
 
 func (m *M) Init() (err error) {
-	var h handlers
+	h := handlers{configs: framework.Configs()}
 	mux := restful.NewServeMux(nil)
 	if err = h.Register(mux); err != nil {
 		return err
