@@ -68,6 +68,10 @@ type VerboseHandler struct {
 	handler http.Handler
 }
 
+func (h *VerboseHandler) Verbose() *Verbose {
+	return h.verbose
+}
+
 func (h *VerboseHandler) printRequest(clientId, traceId string, r *http.Request) {
 	b, err := httputil.DumpRequest(r, true)
 	if err != nil {

@@ -6,7 +6,6 @@ import (
 
 	"github.com/ironzhang/matrix/framework"
 	"github.com/ironzhang/matrix/framework/modules/backend-module"
-	"github.com/ironzhang/matrix/tlog"
 )
 
 var Module = &M{}
@@ -24,7 +23,6 @@ func (m *M) Name() string {
 
 func (m *M) Init() error {
 	mux := http.NewServeMux()
-	mux.Handle("/debug/log/level", tlog.Level())
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
 	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
 	mux.HandleFunc("/debug//pprof/profile", pprof.Profile)

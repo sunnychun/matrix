@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/ironzhang/matrix/framework"
+	"github.com/ironzhang/matrix/httputils"
 	"github.com/ironzhang/matrix/tlog"
 )
 
@@ -20,12 +21,14 @@ func init() {
 }
 
 type C struct {
-	Addr string `json:",readonly"`
+	Addr    string `json:",readonly"`
+	Verbose int64
 }
 
 type M struct {
 	http.ServeMux
-	ln net.Listener
+	verbose httputils.Verbose
+	ln      net.Listener
 }
 
 func (m *M) Name() string {
@@ -33,6 +36,7 @@ func (m *M) Name() string {
 }
 
 func (m *M) Init() (err error) {
+	m.verbose.Store(Config.Verbose)
 	if m.ln, err = net.Listen("tcp", Config.Addr); err != nil {
 		return err
 	}
@@ -51,6 +55,6 @@ func (m *M) Run(ctx context.Context) {
 
 	log := tlog.Std().Sugar().With("module", m.Name(), "addr", Config.Addr)
 	log.Info("start")
-	http.Serve(m.ln, &m.ServeMux)
+	http.Serve(m.ln, httputils.NewVerboseHandler(&m.verbose, nil, &m.ServeMux))
 	log.Info("stop")
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/ironzhang/matrix/framework"
 	"github.com/ironzhang/matrix/framework/modules/backend-module"
 	"github.com/ironzhang/matrix/restful"
+	"github.com/ironzhang/matrix/tlog"
 )
 
 var Module = &M{}
@@ -27,6 +28,7 @@ func (m *M) Init() (err error) {
 		return err
 	}
 	backend_module.Module.Handle("/dashboard/", mux)
+	backend_module.Module.Handle("/dashboard/log/level", tlog.Level())
 	return nil
 }
 
