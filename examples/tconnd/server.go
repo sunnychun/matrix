@@ -6,11 +6,13 @@ import (
 	"expvar"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/ironzhang/matrix/tlog"
 )
 
 var conns = expvar.NewInt("conns")
+var slows = expvar.NewInt("slows")
 
 type server struct {
 	ln net.Listener
@@ -31,7 +33,7 @@ func (s *server) serve(ctx context.Context) {
 	}()
 
 	log := tlog.Std().Sugar().With("addr", s.ln.Addr())
-	log.Info("serve")
+	//log.Info("serve")
 	for {
 		c, err := s.ln.Accept()
 		if err != nil {
@@ -53,9 +55,19 @@ func handleConn(ctx context.Context, c net.Conn) {
 		c.Close()
 	}()
 
-	input := bufio.NewScanner(c)
-	for input.Scan() {
-		fmt.Fprintln(c, input.Text())
+	r := bufio.NewReader(c)
+	for {
+		line, _, err := r.ReadLine()
+		if err != nil {
+			break
+		}
+		start := time.Now()
+		if _, err = fmt.Fprintf(c, "%s\n", line); err != nil {
+			break
+		}
+		if time.Since(start) > time.Second {
+			slows.Add(1)
+		}
 	}
 	c.Close()
 }
