@@ -33,7 +33,7 @@ func (s *server) serve(ctx context.Context) {
 	}()
 
 	log := tlog.Std().Sugar().With("addr", s.ln.Addr())
-	//log.Info("serve")
+	log.Info("serve")
 	for {
 		c, err := s.ln.Accept()
 		if err != nil {

@@ -25,7 +25,7 @@ func (m *M) Init() error {
 	backend_module.Module.Handle("/debug/vars", expvar.Handler())
 	backend_module.Module.HandleFunc("/debug/pprof/", pprof.Index)
 	backend_module.Module.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-	backend_module.Module.HandleFunc("/debug//pprof/profile", pprof.Profile)
+	backend_module.Module.HandleFunc("/debug/pprof/profile", pprof.Profile)
 	backend_module.Module.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	backend_module.Module.HandleFunc("/debug/pprof/trace", pprof.Trace)
 	return nil
