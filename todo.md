@@ -2,6 +2,8 @@
 
 ## features
 
+* netutils: MuxListener
+
 * httputils: VerboseClient
 
 * micro/discovery: 支持WatchAll
