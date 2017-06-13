@@ -3,16 +3,34 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"expvar"
-	"fmt"
+	"io"
 	"net"
+	"sync/atomic"
 	"time"
 
+	"github.com/eclipse/paho.mqtt.golang/packets"
+	"github.com/ironzhang/gomqtt/pkg/packet"
 	"github.com/ironzhang/matrix/tlog"
 )
 
-var conns = expvar.NewInt("conns")
-var slows = expvar.NewInt("slows")
+type stats struct {
+	Conns  int64
+	Slows  int64
+	Errors int64
+}
+
+func (s *stats) String() string {
+	b, _ := json.Marshal(s)
+	return string(b)
+}
+
+var g = stats{}
+
+func init() {
+	expvar.Publish("stats", &g)
+}
 
 type server struct {
 	ln net.Listener
@@ -42,8 +60,8 @@ func (s *server) serve(ctx context.Context) {
 		}
 
 		go func(c net.Conn) {
-			conns.Add(1)
-			defer conns.Add(-1)
+			atomic.AddInt64(&g.Conns, 1)
+			defer atomic.AddInt64(&g.Conns, -1)
 			handleConn(ctx, c)
 		}(c)
 	}
@@ -55,19 +73,41 @@ func handleConn(ctx context.Context, c net.Conn) {
 		c.Close()
 	}()
 
-	r := bufio.NewReader(c)
+	//log := tlog.Std().Sugar().With("addr", c.RemoteAddr().String())
+
+	r := bufio.NewReaderSize(c, 256)
 	for {
-		line, _, err := r.ReadLine()
+		//c.SetReadDeadline(time.Now().Add(120 * time.Second))
+		cp, err := packets.ReadPacket(r)
 		if err != nil {
+			if err != io.EOF {
+				atomic.AddInt64(&g.Errors, 1)
+			}
 			break
 		}
+
 		start := time.Now()
-		if _, err = fmt.Fprintf(c, "%s\n", line); err != nil {
+		if err = processPacket(c, cp); err != nil {
+			atomic.AddInt64(&g.Errors, 1)
 			break
 		}
 		if time.Since(start) > time.Second {
-			slows.Add(1)
+			atomic.AddInt64(&g.Slows, 1)
 		}
 	}
-	c.Close()
+}
+
+func processPacket(c net.Conn, cp packets.ControlPacket) error {
+	switch cp.(type) {
+	case *packets.ConnectPacket:
+		resp := packet.NewConnackPacket()
+		resp.ReturnCode = packets.Accepted
+		c.SetWriteDeadline(time.Now().Add(10 * time.Second))
+		return resp.Write(c)
+	case *packets.PingreqPacket:
+		resp := packet.NewPingrespPacket()
+		c.SetWriteDeadline(time.Now().Add(10 * time.Second))
+		return resp.Write(c)
+	}
+	return nil
 }
