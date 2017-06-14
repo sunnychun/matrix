@@ -12,6 +12,7 @@ import (
 
 var level zap.AtomicLevel
 var std *zap.Logger
+var sugar *zap.SugaredLogger
 
 func init() {
 	if err := Reset(); err != nil {
@@ -78,6 +79,7 @@ func Reset() error {
 
 	level = cfg.Level
 	std = logger
+	sugar = std.Sugar()
 	return nil
 }
 
@@ -91,11 +93,16 @@ func Init(cfg Config) (*zap.Logger, error) {
 	enc := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
 	core := zapcore.NewCore(enc, sink, level)
 	std = zap.New(core, opts...)
+	sugar = std.Sugar()
 	return std, nil
 }
 
 func Std() *zap.Logger {
 	return std
+}
+
+func StdSugar() *zap.SugaredLogger {
+	return sugar
 }
 
 func Level() zap.AtomicLevel {
