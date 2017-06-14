@@ -62,7 +62,7 @@ func (m *M) Run(ctx context.Context) {
 	}()
 
 	log := tlog.Std().Sugar().With("module", m.Name(), "addr", Config.Addr)
-	log.Info("start")
+	log.Debug("start")
 	http.Serve(m.ln, httputils.NewVerboseHandler(&m.verbose, nil, &m.ServeMux))
-	log.Info("stop")
+	log.Debug("stop")
 }
