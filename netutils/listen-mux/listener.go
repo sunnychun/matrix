@@ -8,6 +8,8 @@ import (
 	"github.com/ironzhang/matrix/tlog"
 )
 
+var Verbose bool
+
 var (
 	errClosing = errors.New("use of closed network connection")
 	errUnknown = errors.New("unknown")
@@ -103,7 +105,9 @@ func loopAccept(ln net.Listener, ch chan<- net.Conn) {
 	for {
 		c, err := ln.Accept()
 		if err != nil {
-			log.Debugw("accept", "error", err)
+			if Verbose {
+				log.Debugw("accept", "error", err)
+			}
 			break
 		}
 		ch <- c

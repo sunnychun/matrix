@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
-	"sync"
+	"net"
 
 	"github.com/ironzhang/matrix/framework"
+	"github.com/ironzhang/matrix/netutils/listen-mux"
 	"github.com/ironzhang/matrix/tlog"
 )
 
@@ -23,7 +24,7 @@ type C struct {
 }
 
 type M struct {
-	servers []server
+	ln net.Listener
 }
 
 func (m *M) Name() string {
@@ -31,11 +32,9 @@ func (m *M) Name() string {
 }
 
 func (m *M) Init() (err error) {
-	m.servers = make([]server, len(Config.Addrs))
-	for i, addr := range Config.Addrs {
-		if err = m.servers[i].Init(addr); err != nil {
-			return err
-		}
+	m.ln, err = listen_mux.Listen("tcp", Config.Addrs, 0)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -45,17 +44,8 @@ func (m *M) Fini() error {
 }
 
 func (m *M) Run(ctx context.Context) {
-	log := tlog.Std().Sugar().With("module", m.Name())
-
+	log := tlog.Std().Sugar().With("module", m.Name(), "addr", m.ln.Addr().String())
 	log.Info("start")
-	var wg sync.WaitGroup
-	for i := range m.servers {
-		wg.Add(1)
-		go func(s *server) {
-			defer wg.Done()
-			s.serve(ctx)
-		}(&m.servers[i])
-	}
-	wg.Wait()
+	serve(ctx, m.ln)
 	log.Info("stop")
 }

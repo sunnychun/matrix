@@ -32,28 +32,15 @@ func init() {
 	expvar.Publish("stats", &g)
 }
 
-type server struct {
-	ln net.Listener
-}
-
-func (s *server) Init(addr string) (err error) {
-	s.ln, err = net.Listen("tcp", addr)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *server) serve(ctx context.Context) {
+func serve(ctx context.Context, ln net.Listener) {
 	go func() {
 		<-ctx.Done()
-		s.ln.Close()
+		ln.Close()
 	}()
 
-	log := tlog.Std().Sugar().With("addr", s.ln.Addr())
-	log.Info("serve")
+	log := tlog.Std().Sugar()
 	for {
-		c, err := s.ln.Accept()
+		c, err := ln.Accept()
 		if err != nil {
 			log.Infow("accpet", "error", err)
 			return
