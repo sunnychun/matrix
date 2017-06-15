@@ -21,11 +21,11 @@ func init() {
 }
 
 type C struct {
-	Endpoints        []string         `json:",readonly"`
-	AutoSyncInterval jsoncfg.Duration `json:",readonly"`
-	DialTimeout      jsoncfg.Duration `json:",readonly"`
-	Username         string           `json:",readonly"`
-	Password         string           `json:",readonly"`
+	Endpoints        []string
+	AutoSyncInterval jsoncfg.Duration
+	DialTimeout      jsoncfg.Duration
+	Username         string
+	Password         string
 }
 
 type M struct {

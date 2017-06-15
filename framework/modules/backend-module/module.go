@@ -23,7 +23,7 @@ func init() {
 
 type C struct {
 	Addr    string `json:",readonly"`
-	Verbose int64
+	Verbose int64  `json:",writeable"`
 }
 
 func (c *C) Reload() error {

@@ -16,10 +16,10 @@ import (
 )
 
 type Options struct {
-	ConfigFile       string `json:"config-file,readonly" usage:"指定配置文件选项"`
-	ConfigExample    string `json:"config-example,readonly" usage:"生成配置示例选项"`
-	LogConfigFile    string `json:"log-config-file,readonly" usage:"指定日志配置文件选项"`
-	LogConfigExample string `json:"log-config-example,readonly" usage:"生成日志配置示例选项"`
+	ConfigFile       string `json:"config-file" usage:"指定配置文件选项"`
+	ConfigExample    string `json:"config-example" usage:"生成配置示例选项"`
+	LogConfigFile    string `json:"log-config-file" usage:"指定日志配置文件选项"`
+	LogConfigExample string `json:"log-config-example" usage:"生成日志配置示例选项"`
 }
 
 type Module interface {

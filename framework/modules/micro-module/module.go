@@ -23,9 +23,9 @@ func init() {
 }
 
 type C struct {
-	Namespace string           `json:",readonly"`
-	Timeout   jsoncfg.Duration `json:",readonly"`
-	TTL       int64            `json:",readonly"`
+	Namespace string
+	Timeout   jsoncfg.Duration
+	TTL       int64
 }
 
 type M struct {
