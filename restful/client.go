@@ -3,11 +3,7 @@ package restful
 import (
 	"bytes"
 	"context"
-	"fmt"
-	"io"
 	"net/http"
-	"net/http/httputil"
-	"os"
 	"time"
 
 	"github.com/ironzhang/matrix/codes"
@@ -19,22 +15,15 @@ import (
 )
 
 var DefaultClient = &Client{
-	Verbose: 1,
 	Client: &http.Client{
-		Transport: http.DefaultTransport,
+		Transport: httputils.NewVerboseRoundTripper(nil, nil, nil),
 		Timeout:   20 * time.Second,
 	},
 }
 
-type HTTPClient interface {
-	Do(req *http.Request) (*http.Response, error)
-}
-
 type Client struct {
-	Verbose int
-	Client  HTTPClient
+	Client  *http.Client
 	Codec   codec.Codec
-	Writer  io.Writer
 	Context context.Context
 }
 
@@ -120,12 +109,6 @@ func (c *Client) DoContext(ctx context.Context, method, url string, args, reply 
 	}
 	c.setHeader(ctx, req.Header)
 
-	// Print request
-	verbose := c.getVerbose(ctx)
-	if verbose {
-		c.printRequest(ctx, req)
-	}
-
 	// Do
 	resp, err := c.client().Do(req)
 	if err != nil {
@@ -133,11 +116,6 @@ func (c *Client) DoContext(ctx context.Context, method, url string, args, reply 
 		return err
 	}
 	defer resp.Body.Close()
-
-	// Print response
-	if verbose {
-		c.printResponse(ctx, resp)
-	}
 
 	// Handle error
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -170,7 +148,7 @@ func (c *Client) setHeader(ctx context.Context, h http.Header) {
 	}
 }
 
-func (c *Client) client() HTTPClient {
+func (c *Client) client() *http.Client {
 	if c.Client == nil {
 		return http.DefaultClient
 	}
@@ -184,50 +162,11 @@ func (c *Client) codec() codec.Codec {
 	return c.Codec
 }
 
-func (c *Client) writer() io.Writer {
-	if c.Writer == nil {
-		return os.Stdout
-	}
-	return c.Writer
-}
-
 func (c *Client) context() context.Context {
 	if c.Context == nil {
 		return context.Background()
 	}
 	return c.Context
-}
-
-func (c *Client) printRequest(ctx context.Context, r *http.Request) {
-	b, err := httputil.DumpRequestOut(r, true)
-	if err != nil {
-		tlog.WithContext(ctx).Sugar().Errorw("dump request out", "error", err)
-		return
-	}
-	traceId := context_value.ParseTraceId(ctx)
-	fmt.Fprintf(c.writer(), "traceId(%s) client request:\n%s\n", traceId, b)
-}
-
-func (c *Client) printResponse(ctx context.Context, r *http.Response) {
-	b, err := httputil.DumpResponse(r, true)
-	if err != nil {
-		tlog.WithContext(ctx).Sugar().Errorw("dump response", "error", err)
-		return
-	}
-	traceId := context_value.ParseTraceId(ctx)
-	fmt.Fprintf(c.writer(), "traceId(%s) client response:\n%s\n", traceId, b)
-}
-
-func (c *Client) getVerbose(ctx context.Context) bool {
-	switch c.Verbose {
-	case 0:
-		return false
-	case 1:
-		return context_value.ParseVerbose(ctx)
-	case 2:
-		return true
-	}
-	return false
 }
 
 func contextWithTraceId(ctx context.Context) context.Context {
