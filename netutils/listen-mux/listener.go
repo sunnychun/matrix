@@ -1,6 +1,7 @@
 package listen_mux
 
 import (
+	"crypto/tls"
 	"errors"
 	"net"
 	"sync"
@@ -19,6 +20,18 @@ func Listen(network string, addrs []string, backlog int) (net.Listener, error) {
 	listeners := make([]net.Listener, 0, len(addrs))
 	for _, addr := range addrs {
 		ln, err := net.Listen(network, addr)
+		if err != nil {
+			return nil, err
+		}
+		listeners = append(listeners, ln)
+	}
+	return NewListener(network, listeners, backlog), nil
+}
+
+func ListenTLS(network string, addrs []string, backlog int, config *tls.Config) (net.Listener, error) {
+	listeners := make([]net.Listener, 0, len(addrs))
+	for _, addr := range addrs {
+		ln, err := tls.Listen(network, addr, config)
 		if err != nil {
 			return nil, err
 		}
