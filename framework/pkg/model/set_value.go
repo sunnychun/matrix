@@ -288,7 +288,7 @@ func (s setState) setMap(x, y reflect.Value) {
 			if !ok {
 				continue
 			}
-			if f.readonly {
+			if !f.writeable {
 				continue
 			}
 			s.set(x.Field(f.index), y.MapIndex(k))
@@ -327,7 +327,7 @@ func (s setState) setStruct(x, y reflect.Value) {
 			if !ok {
 				continue
 			}
-			if xf.readonly {
+			if !xf.writeable {
 				continue
 			}
 			s.set(x.Field(xf.index), y.Field(yf.index))

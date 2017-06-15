@@ -7,22 +7,22 @@ import (
 
 func TestParseTag(t *testing.T) {
 	tests := []struct {
-		tag      string
-		name     string
-		readonly bool
+		tag       string
+		name      string
+		writeable bool
 	}{
 		{"", "", false},
 		{"name", "name", false},
-		{"name,readonly", "name", true},
-		{",readonly", "", true},
-		{"name,noreadonly", "name", false},
+		{"name,writeable", "name", true},
+		{",writeable", "", true},
+		{"name,readonly", "name", false},
 	}
 	for _, tt := range tests {
-		name, readonly := parseTag(tt.tag)
+		name, writeable := parseTag(tt.tag)
 		if got, want := name, tt.name; got != want {
 			t.Errorf("parse %q tag: name: got(%v) != want(%v)", tt.tag, got, want)
 		}
-		if got, want := readonly, tt.readonly; got != want {
+		if got, want := writeable, tt.writeable; got != want {
 			t.Errorf("parse %q tag: readonly: got(%v) != want(%v)", tt.tag, got, want)
 		}
 	}
@@ -31,12 +31,12 @@ func TestParseTag(t *testing.T) {
 func TestTypeFields(t *testing.T) {
 	type T1 struct {
 		A int
-		B string `json:",readonly"`
+		B string `json:",writeable"`
 		c string
 	}
 	type T2 struct {
 		A int    `json:"a"`
-		B string `json:"b,readonly"`
+		B string `json:"b,writeable"`
 		C string `json:"-"`
 	}
 

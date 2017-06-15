@@ -222,8 +222,8 @@ func TestSetValue(t *testing.T) {
 		casename := "SetMapToStruct1"
 
 		type T struct {
-			A string
-			B int
+			A string `json:",writeable"`
+			B int    `json:",writeable"`
 		}
 
 		var x T
@@ -242,9 +242,9 @@ func TestSetValue(t *testing.T) {
 		casename := "SetMapToStruct2"
 
 		type T struct {
-			A map[string]int
-			B map[string]string
-			C map[int]int
+			A map[string]int    `json:",writeable"`
+			B map[string]string `json:",writeable"`
+			C map[int]int       `json:",writeable"`
 		}
 
 		var x T
@@ -289,9 +289,9 @@ func TestSetValue(t *testing.T) {
 		casename := "SetMapToStruct3"
 
 		type T struct {
-			A string
-			B int
-			C float64 `json:c`
+			A string  `json:",writeable"`
+			B int     `json:",writeable"`
+			C float64 `json:"C,writeable"`
 			D string  `json:",readonly"`
 			E string  `json:"-"`
 			f string
@@ -366,8 +366,8 @@ func TestSetValue(t *testing.T) {
 		casename := "SetStructToStruct"
 
 		type T1 struct {
-			A string
-			B int
+			A string `json:",writeable"`
+			B int    `json:",writeable"`
 		}
 
 		type T2 struct {
