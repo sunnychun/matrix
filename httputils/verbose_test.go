@@ -73,7 +73,7 @@ func TestParseTraceId(t *testing.T) {
 }
 
 func TestVerboseHandler(t *testing.T) {
-	h := NewVerboseHandler(NewVerbose(0), nil, http.NewServeMux())
+	h := NewVerboseHandler(nil, nil, nil)
 
 	r, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
@@ -83,4 +83,19 @@ func TestVerboseHandler(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
+}
+
+func TestVerboseRoundTripper(t *testing.T) {
+	rt := NewVerboseRoundTripper(nil, nil, nil)
+
+	s := httptest.NewServer(nil)
+	r, err := http.NewRequest("GET", s.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Set(X_VERBOSE, "1")
+
+	if _, err = rt.RoundTrip(r); err != nil {
+		t.Fatal(err)
+	}
 }
