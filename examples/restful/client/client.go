@@ -4,9 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/ironzhang/matrix/context-value"
+	"github.com/ironzhang/matrix/httputils"
 	"github.com/ironzhang/matrix/restful"
 	"github.com/ironzhang/matrix/tlog"
 )
@@ -14,7 +16,7 @@ import (
 const url = "http://localhost:8080"
 
 var client = restful.Client{
-	Verbose: 1,
+	Client:  &http.Client{Transport: httputils.NewVerboseRoundTripper(nil, nil, nil)},
 	Context: context_value.WithVerbose(context.Background(), true),
 }
 

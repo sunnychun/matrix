@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/ironzhang/matrix/httputils"
 )
 
 func main() {
@@ -12,5 +14,5 @@ func main() {
 		return
 	}
 	fmt.Printf("serve on :8080\n")
-	http.ListenAndServe(":8080", h)
+	http.ListenAndServe(":8080", httputils.NewVerboseHandler(nil, nil, h))
 }
