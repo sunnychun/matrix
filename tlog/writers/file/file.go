@@ -2,6 +2,7 @@ package file
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -12,9 +13,10 @@ const bufferSize = 256 * 1024
 const defaultMaxBytes = 1024 * 1024 * 1024
 
 type Options struct {
-	Dir      string
-	Program  string
-	MaxBytes int
+	Dir           string
+	Program       string
+	MaxBytes      int
+	FlushInterval time.Duration
 }
 
 func Open(opts Options) (*File, error) {
@@ -40,11 +42,19 @@ type File struct {
 	bufw   *bufio.Writer
 	nbytes int
 	closed bool
+	done   chan struct{}
 }
 
 func (f *File) init(opts Options) error {
 	f.opts = opts
-	return f.rotate(time.Now())
+	if err := f.rotate(time.Now()); err != nil {
+		return err
+	}
+	if f.opts.FlushInterval > 0 {
+		f.done = make(chan struct{})
+		go flushing(f)
+	}
+	return nil
 }
 
 func (f *File) rotate(now time.Time) (err error) {
@@ -60,9 +70,7 @@ func (f *File) rotate(now time.Time) (err error) {
 	}
 	f.bufw = bufio.NewWriterSize(f.file, bufferSize)
 
-	//var buf bytes.Buffer
-	//fmt.Fprintf(&buf, "Log file created at: %s\n", now.Format("2006/01/02 15:04:05"))
-	//w.nbytes, err = w.file.Write(buf.Bytes())
+	f.nbytes, err = fmt.Fprintf(f.file, "Log file created at: %s\n", now.Format("2006/01/02 15:04:05"))
 	return err
 }
 
@@ -78,6 +86,9 @@ func (f *File) Close() (err error) {
 		return &os.PathError{"close", f.path(), os.ErrClosed}
 	}
 
+	if f.done != nil {
+		close(f.done)
+	}
 	if f.file != nil {
 		f.bufw.Flush()
 		err = f.file.Close()
@@ -121,4 +132,17 @@ func (f *File) Write(p []byte) (n int, err error) {
 	n, err = f.bufw.Write(p)
 	f.nbytes += n
 	return n, err
+}
+
+func flushing(f *File) {
+	t := time.NewTicker(f.opts.FlushInterval)
+	defer t.Stop()
+	for {
+		select {
+		case <-f.done:
+			return
+		case <-t.C:
+			f.Flush()
+		}
+	}
 }

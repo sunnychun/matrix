@@ -114,7 +114,6 @@ func (f *framework) main() (err error) {
 			}(r)
 		}
 	}
-	log.Sync()
 	wg.Wait()
 
 	// module fini
