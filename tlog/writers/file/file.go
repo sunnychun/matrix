@@ -11,12 +11,12 @@ import (
 
 const bufferSize = 256 * 1024
 const defaultMaxBytes = 1024 * 1024 * 1024
+const flushInterval = time.Minute
 
 type Options struct {
-	Dir           string
-	Program       string
-	MaxBytes      int
-	FlushInterval time.Duration
+	Dir      string
+	Program  string
+	MaxBytes int
 }
 
 func Open(opts Options) (*File, error) {
@@ -50,10 +50,8 @@ func (f *File) init(opts Options) error {
 	if err := f.rotate(time.Now()); err != nil {
 		return err
 	}
-	if f.opts.FlushInterval > 0 {
-		f.done = make(chan struct{})
-		go flushing(f)
-	}
+	f.done = make(chan struct{})
+	go flushing(f)
 	return nil
 }
 
@@ -86,9 +84,7 @@ func (f *File) Close() (err error) {
 		return &os.PathError{"close", f.path(), os.ErrClosed}
 	}
 
-	if f.done != nil {
-		close(f.done)
-	}
+	close(f.done)
 	if f.file != nil {
 		f.bufw.Flush()
 		err = f.file.Close()
@@ -135,7 +131,7 @@ func (f *File) Write(p []byte) (n int, err error) {
 }
 
 func flushing(f *File) {
-	t := time.NewTicker(f.opts.FlushInterval)
+	t := time.NewTicker(flushInterval)
 	defer t.Stop()
 	for {
 		select {
