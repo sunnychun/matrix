@@ -60,22 +60,22 @@ func (c *Client) Go(serviceMethod string, args interface{}, reply interface{}, d
 
 func calling(net, addr string, calls <-chan *rpc.Call) {
 	var err error
-	var c *rpc.Client
+	var client *rpc.Client
 	for call := range calls {
-		if c == nil {
-			if c, err = rpc.Dial(net, addr); err != nil {
+		if client == nil {
+			if client, err = rpc.Dial(net, addr); err != nil {
 				call.Error = err
 				call.Done <- call
 				continue
 			}
 		}
-		if err = c.Call(call.ServiceMethod, call.Args, call.Reply); err == rpc.ErrShutdown || err == io.ErrUnexpectedEOF {
-			c = nil
+		if err = client.Call(call.ServiceMethod, call.Args, call.Reply); err == rpc.ErrShutdown || err == io.ErrUnexpectedEOF {
+			client = nil
 		}
 		call.Error = err
 		call.Done <- call
 	}
-	if c != nil {
-		c.Close()
+	if client != nil {
+		client.Close()
 	}
 }
